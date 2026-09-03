@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Experiments with jupyter notebook
+experiments.ipynb
+
+# tiny Data installed
+imagenet1k_1000rows/
