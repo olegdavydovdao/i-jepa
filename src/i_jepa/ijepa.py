@@ -53,21 +53,17 @@ train_data = load_from_disk(folder_name)
 transform = make_transform()
 train_data = train_data.with_transform(transform_batch) # when train_data[:batch_size] HF grab and fed it into tranform_batch(.) | with_transform triggers only to slices
 
-# DataLoader | from src/datasets/ i1k.py
 data_loader = DataLoader(
     train_data,
-    # collate_fn = None, # for masks?: collate_fn = collator = None
-    # collate_fn = default_data_collator, # by gemeni
-    # sampler = dist_sampler,
-    batch_size = 2,
-    # drop_last=True,
-    # pin_memory=True,
-    # num_workers = 1, # 8
-    # persistent_workers=False,
-    # shuffle=True # If sampler specified, shuffle must not be specified
+    batch_size=2,
 )
+# shuffle: how it happens and how do it to (image,label) not destroy?
+# num_workers
+# collator: a custom collate_fn so your loop yields explicit xb, yb tuples instead of a dictionary? This would allow you to write for xb, yb in data_loader: directly.
+# default_collator
 for batch in data_loader:
-    images = batch["image"]
-    labels = batch["label"]
-    print(images.shape, labels.shape)
+    xb = batch["image"]
+    yb = batch["label"]
+    print(xb.shape, yb.shape)
+    print(batch)
     break
