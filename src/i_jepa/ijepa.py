@@ -18,9 +18,8 @@ else:
     install_all_data = False
     print(f'Data folder is missing, starting download from Hugging Face {install_all_data=}')
     if install_all_data:
-        # install all data next save them. 2x works with 170GB storage, i don't like it.
-        # train_set = load_dataset('ILSVRC/imagenet-1k', split='train', cache_dir=folder_name)
-        # train_set.save_to_disk(folder_name)
+        # if else with install_all_data to load it later in code because load_from_disk is not working without .save_to_disk
+        # train_set = load_dataset('ILSVRC/imagenet-1k', split='train', cache_dir=folder_name) # local_files_only=True
         pass
     else:
         num_rows = 1000
@@ -57,11 +56,11 @@ data_loader = DataLoader(
     train_data,
     batch_size=2,
 )
-# shuffle: how it happens and how do it to (image,label) not destroy?
+# shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
 # num_workers
 # collator: a custom collate_fn so your loop yields explicit xb, yb tuples instead of a dictionary? This would allow you to write for xb, yb in data_loader: directly.
-# default_collator
-for batch in data_loader:
+# default_collator, collate_fn in DataLoader is the thing that mentioned in masking strategy ijepa paper page 12 (gemini said).
+for batch in data_loader: # for xb, yb in data_loader
     xb = batch["image"]
     yb = batch["label"]
     print(xb.shape, yb.shape)
