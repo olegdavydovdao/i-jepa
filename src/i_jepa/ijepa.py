@@ -5,18 +5,9 @@ from datasets import load_from_disk, load_dataset, Dataset
 from torchvision.transforms import v2
 from torch.utils.data import DataLoader
 import os
-import sys
-from dataclasses import dataclass
+import sys; sys.path.append(".")
+from config import Config
 torch.manual_seed(0)
-
-@dataclass(frozen=True)
-class Config:
-    crop_size: int = 224
-    crop_scale: tuple = (0.3, 1.0)
-    normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-    tiny_data_folder_name: str = "imagenet1k_tiny"
-    num_train_rows: int = 1000
-    num_val_rows: int = 100
 
 # Install small subset of Imagenet1k
 # Note: for full Imagenet code slightly will change due without .save_to_disk())
@@ -47,7 +38,7 @@ class Make_transform():
 
 # Converting the HF data and mask strategy
 class Mask_collator():
-    def __init__(self): # HF Dataset.__getitem__ change the HF type of data
+    def __init__(self):
         pass
     def __call__(self, list_of_i1l1_dicts):
         list_images = [il_dict["image"] for il_dict in list_of_i1l1_dicts]
