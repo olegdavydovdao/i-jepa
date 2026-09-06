@@ -30,7 +30,7 @@ def install_data_folder_tiny(split):
     split_path = f"{data_folder_name}/{split}"
     local_dataset.save_to_disk(split_path)
 
-# n_rows of imagenet1k with raw images -> n_rows with 224x224 crop tensor for each image independently
+# n_rows raw images -> n_rows with 224x224 crop tensor for each image independently
 class Make_transform():
     def __init__(self, crop_size, crop_scale, normalization):
         self.transform = v2.Compose([
@@ -44,10 +44,14 @@ class Make_transform():
         return n_rows
 
 # Converting the HF data and mask strategy
-def mask_collator(list_of_i1l1_dicts): # HF Dataset.__getitem__ change the HF type of data
-    list_images = [il_dict["image"] for il_dict in list_of_i1l1_dicts]
-    xb = torch.stack(list_images)
-    return xb
+class Mask_collator():
+    def __init__(self): # HF Dataset.__getitem__ change the HF type of data
+        pass
+    def __call__(self, list_of_i1l1_dicts):
+        list_images = [il_dict["image"] for il_dict in list_of_i1l1_dicts]
+        xb = torch.stack(list_images)
+        return xb
+# ----
 
 # ImageNet_tiny data installation at 1st run
 if os.path.isdir(data_folder_name):
@@ -56,11 +60,13 @@ else:
     install_data_folder_tiny("train")
     install_data_folder_tiny("validation")
 
+# Load and pre-transform train data
 train_data = load_from_disk(f"{data_folder_name}/train")
 make_transform = Make_transform(crop_size, crop_scale, normalization)
-def wrap_transform(n_rows):
+def wrap_transform(n_rows): # to num_workers works fine
     return make_transform(n_rows)
 train_data = train_data.with_transform(wrap_transform)
+mask_collator = Mask_collator()
 
 data_loader = DataLoader(
     train_data,
