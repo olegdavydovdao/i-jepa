@@ -12,26 +12,23 @@ torch.manual_seed(0)
 crop_size = 224,
 crop_scale = (0.3, 1.0)
 normalization = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+data_folder_name = "imagenet1k_tiny"
+num_train_rows = 1000
+num_val_rows = 100
 
-# Do i need this logic in main page?
-# def if i not install the data and call it, else i have installed data and do not need messy code
-# Install the data only at 1st time
-folder_name = "imagenet1k_1000rows"
-if os.path.isdir(folder_name):
-    print('Data folder is exists')
-else:
-    install_all_data = False
-    print(f'Data folder is missing, starting download from Hugging Face {install_all_data=}')
-    if install_all_data:
-        # if else with install_all_data to load it later in code because load_from_disk is not working without .save_to_disk
-        # train_set = load_dataset('ILSVRC/imagenet-1k', split='train', cache_dir=folder_name) # local_files_only=True
-        pass
+# Install small subset of Imagenet1k
+# Note: for full Imagenet code slightly will change due without .save_to_disk())
+def install_data_folder_tiny(split):
+    assert split in ["train", "validation"], 'argument in install_data_folder() should be: "train" or "validation"'
+    print(f'Data folder {split} is missing, starting download "tiny" Imagenet1k {split} set from Hugging Face')
+    stream = load_dataset('ILSVRC/imagenet-1k', split=split, streaming=True) # IterableDataset
+    if split == "train":
+        subset_stream = stream.take(num_train_rows)
     else:
-        num_rows = 1000
-        train_set_stream = load_dataset('ILSVRC/imagenet-1k', split='train', streaming=True) # IterableDataset
-        subset_stream = train_set_stream.take(num_rows)
-        local_dataset = Dataset.from_generator(lambda: iter(subset_stream))
-        local_dataset.save_to_disk(folder_name)
+        subset_stream = stream.take(num_val_rows)
+    local_dataset = Dataset.from_generator(lambda: iter(subset_stream))
+    split_path = f"{data_folder_name}/{split}"
+    local_dataset.save_to_disk(split_path)
 
 # n_rows of imagenet1k with raw images -> n_rows with 224x224 crop tensor for each image independently
 class Make_transform():
@@ -52,10 +49,14 @@ def mask_collator(list_of_i1l1_dicts): # HF Dataset.__getitem__ change the HF ty
     xb = torch.stack(list_images)
     return xb
 
-# ImageNet data prepare
-# if else for 1000 rows or full dataset
-train_data = load_from_disk(folder_name)
+# ImageNet_tiny data installation at 1st run
+if os.path.isdir(data_folder_name):
+    pass
+else:
+    install_data_folder_tiny("train")
+    install_data_folder_tiny("validation")
 
+train_data = load_from_disk(f"{data_folder_name}/train")
 make_transform = Make_transform(crop_size, crop_scale, normalization)
 def wrap_transform(n_rows):
     return make_transform(n_rows)
