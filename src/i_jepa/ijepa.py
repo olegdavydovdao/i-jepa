@@ -10,7 +10,7 @@ from config import Config
 torch.manual_seed(0)
 
 # Install small subset of Imagenet1k
-# Note: for full Imagenet code slightly will change due without .save_to_disk())
+# Note: for full Imagenet code slightly will change due without .save_to_disk()
 def install_data_folder_tiny(split):
     assert split in ["train", "validation"], 'argument in install_data_folder() should be: "train" or "validation"'
     print(f'Data folder {split} is missing, starting download "tiny" Imagenet1k {split} set from Hugging Face')
@@ -23,7 +23,7 @@ def install_data_folder_tiny(split):
     split_path = f"{cfg.tiny_data_folder_name}/{split}"
     local_dataset.save_to_disk(split_path)
 
-# n_rows raw images -> n_rows with 224x224 crop tensor for each image independently
+# n_rows with raw images -> n_rows with 224x224 crop tensor for each image independently
 class Make_transform():
     def __init__(self):
         self.transform = v2.Compose([
@@ -65,7 +65,7 @@ mask_collator = Mask_collator()
 
 data_loader = DataLoader(
     train_data,
-    batch_size=2,
+    batch_size=cfg.batch_size,
     collate_fn=mask_collator
 )
 # shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
