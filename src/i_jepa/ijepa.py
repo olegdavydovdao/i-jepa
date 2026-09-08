@@ -39,11 +39,19 @@ class Make_transform():
 # Converting the HF data and mask strategy
 class Mask_collator():
     def __init__(self):
-        pass
+        self.num_patches = (cfg.crop_size//cfg.patch_size)**2 # int 196
     def __call__(self, list_of_i1l1_dicts):
+        # get xb
         list_images = [il_dict["image"] for il_dict in list_of_i1l1_dicts]
         xb = torch.stack(list_images)
-        return xb
+
+        # src/masks/multiblock.py
+        # mask strategy for single gpu. for ddp change the code.
+        # for target blocks T1 != T_m or T1 == T_m?
+        # torch.randint(self.num_patches)
+        context_patch_indices = None
+        target_patch_indices = None
+        return xb#, context_patch_indices, target_patch_indices
 
 # --------------------------------------------------------------------------------
 
@@ -74,5 +82,5 @@ data_loader = DataLoader(
 
 for xb in data_loader:
     print(xb.shape)
-    print(xb)
+    # print(xb)
     break
