@@ -24,6 +24,7 @@ def install_data_folder_tiny(split):
     local_dataset.save_to_disk(split_path)
 
 # n_rows with raw images -> n_rows with 224x224 crop tensor for each image independently
+# redo to def inside def and without wrapper
 class Make_transform():
     def __init__(self):
         self.transform = v2.Compose([
@@ -39,19 +40,26 @@ class Make_transform():
 # Converting the HF data and mask strategy
 class Mask_collator():
     def __init__(self):
+        self.finetune = False
         self.num_patches = (cfg.crop_size//cfg.patch_size)**2 # int 196
     def __call__(self, list_of_i1l1_dicts):
-        # get xb
-        list_images = [il_dict["image"] for il_dict in list_of_i1l1_dicts]
-        xb = torch.stack(list_images)
+        B = len(list_of_i1l1_dicts)
+        xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
+        xb = xbyb_dict["image"]
 
+        
+        # sys.exit(0)
+        
         # src/masks/multiblock.py
         # mask strategy for single gpu. for ddp change the code.
-        # for target blocks T1 != T_m or T1 == T_m?
         # torch.randint(self.num_patches)
-        context_patch_indices = None
-        target_patch_indices = None
-        return xb#, context_patch_indices, target_patch_indices
+        context_mask_patch_indices = None
+        target_mask4_patch_indices = None
+
+        if self.finetune:
+            yb = xbyb_dict["label"]
+            return xb, yb, context_mask_patch_indices, target_mask4_patch_indices
+        return xb, context_mask_patch_indices, target_mask4_patch_indices
 
 # --------------------------------------------------------------------------------
 
@@ -71,16 +79,19 @@ def wrap_transform(n_rows): # to num_workers works fine
 train_data = train_data.with_transform(wrap_transform)
 mask_collator = Mask_collator()
 
-data_loader = DataLoader(
-    train_data,
-    batch_size=cfg.batch_size,
-    collate_fn=mask_collator
-)
-# shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
-# num_workers
-# collate_fn in DataLoader is the thing that mentioned in masking strategy ijepa paper page 12 (gemini said).
+if __name__=="__main__":
+    data_loader = DataLoader(
+        train_data,
+        batch_size=cfg.batch_size,
+        collate_fn=mask_collator,
+        num_workers=cfg.num_workers,
+    )
+    # shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
+    # num_workers
+    # collate_fn in DataLoader is the thing that mentioned in masking strategy ijepa paper page 12 (gemini said).
 
-for xb in data_loader:
-    print(xb.shape)
-    # print(xb)
-    break
+    for xb, context_indecies, targets_indecies in data_loader:
+        print(xb.shape)
+        print(context_indecies, targets_indecies)
+        # print(xb)
+        break
