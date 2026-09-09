@@ -74,9 +74,7 @@ else:
 # Load and pre-transform train data
 train_data = load_from_disk(f"{cfg.tiny_data_folder_name}/train")
 make_transform = Make_transform()
-def wrap_transform(n_rows): # to num_workers works fine
-    return make_transform(n_rows)
-train_data = train_data.with_transform(wrap_transform)
+train_data = train_data.with_transform(make_transform)
 mask_collator = Mask_collator()
 
 if __name__=="__main__":
@@ -87,11 +85,10 @@ if __name__=="__main__":
         num_workers=cfg.num_workers,
     )
     # shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
-    # num_workers
     # collate_fn in DataLoader is the thing that mentioned in masking strategy ijepa paper page 12 (gemini said).
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
-        print(context_indecies, targets_indecies)
-        # print(xb)
+        # print(context_indecies, targets_indecies)
+        print(xb)
         break
