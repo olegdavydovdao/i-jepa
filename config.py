@@ -10,7 +10,7 @@ class Config:
     num_train_rows: int = 1000
     num_val_rows: int = 100
     batch_size: int = 2
-    num_workers: int = 1
+    num_workers: int = 2
     # pin_mem: bool = True
     
     # Mask

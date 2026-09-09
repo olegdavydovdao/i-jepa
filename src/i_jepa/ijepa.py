@@ -47,7 +47,7 @@ class Mask_collator():
         xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
         xb = xbyb_dict["image"]
 
-        
+        # do generetor or still manual_seed(0)?: self._itr_counter, def step(self) in src/masks/multiblock.py
         # sys.exit(0)
         
         # src/masks/multiblock.py
@@ -56,10 +56,12 @@ class Mask_collator():
         context_mask_patch_indices = None
         target_mask4_patch_indices = None
 
+        return_list = [xb, context_mask_patch_indices, target_mask4_patch_indices]
         if self.finetune:
             yb = xbyb_dict["label"]
-            return xb, yb, context_mask_patch_indices, target_mask4_patch_indices
-        return xb, context_mask_patch_indices, target_mask4_patch_indices
+            return_list.append(yb)
+            return *return_list,
+        return *return_list,
 
 # --------------------------------------------------------------------------------
 
