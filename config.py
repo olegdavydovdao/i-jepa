@@ -20,12 +20,12 @@ class Config:
     num_patches: int = height*width # 196
     allow_overlap: bool = False
     # targets masks
-    target_aspect_ratio: tuple = (0.75, 1.5)
-    target_mask_scale: tuple = (0.15, 0.2)
+    target_aspect_ratio_range: tuple = (0.75, 1.5) # h/w
+    target_mask_scale_range: tuple = (0.15, 0.2)
     num_target_masks: int = 4
     # context mask
-    context_aspect_ratio: tuple = (1.0, 1.0)
-    context_mask_scale: tuple = (0.85, 1.0)
+    context_aspect_ratio_range: tuple = (1.0, 1.0)
+    context_mask_scale_range: tuple = (0.85, 1.0)
     num_context_masks: int = 1
     min_num_context_patches: int = 10
 

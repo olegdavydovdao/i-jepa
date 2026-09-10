@@ -8,6 +8,7 @@ import os
 import sys; sys.path.append(".")
 from config import Config
 from multiprocessing import Value
+import math
 torch.manual_seed(0)
 
 # Install small subset of Imagenet1k
@@ -25,7 +26,6 @@ def install_data_folder_tiny(split):
     local_dataset.save_to_disk(split_path)
 
 # n_rows with raw images -> n_rows with 224x224 crop tensor for each image independently
-# redo to def inside def and without wrapper
 class Make_transform():
     def __init__(self):
         self.transform = v2.Compose([
@@ -51,6 +51,24 @@ class Mask_collator():
             v = i.value
         return v
 
+    def _sample_block_size(self, g, mask_scale_range, aspect_ratio_range):
+        # sample block scale
+        _rand = torch.rand(1, generator=g).item()
+        min_s, max_s = mask_scale_range
+        mask_scale = min_s + _rand * (max_s-min_s)
+        max_keep = int(mask_scale * cfg.num_patches)
+        # sample block aspect ratio
+        min_ar, max_ar = aspect_ratio_range
+        aspect_ratio = min_ar + _rand * (max_ar-min_ar)
+        # aspect_ratio = h/w | max_keep = h*w
+        h = round(math.sqrt(max_keep * aspect_ratio))
+        w = round(math.sqrt(max_keep / aspect_ratio))
+        while h >= cfg.height:
+            h -= 1
+        while w >= cfg.width:
+            w -= 1
+        return (h,w) # (cfg.height-1, cfg.width-1) is max
+
     def __call__(self, list_of_i1l1_dicts):
         B = len(list_of_i1l1_dicts)
         xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
@@ -58,15 +76,12 @@ class Mask_collator():
 
         seed = self.step() # seed 0 at the start
         g = torch.Generator().manual_seed(seed)
-        
-
-
-        # do generetor or still manual_seed(0)?: self._itr_counter, def step(self) in src/masks/multiblock.py
-        # sys.exit(0)
+        target_size = self._sample_block_size(g, cfg.target_mask_scale_range, cfg.target_aspect_ratio_range)
+        context_size = self._sample_block_size(g, cfg.context_mask_scale_range, cfg.context_aspect_ratio_range)
+        print(f"{target_size=}")
+        print(f"{context_size=}")
         
         # src/masks/multiblock.py
-        # mask strategy for single gpu. for ddp change the code.
-        # torch.randint(self.num_patches)
         context_mask_patch_indices = None
         target_mask4_patch_indices = None
 
@@ -101,10 +116,9 @@ if __name__=="__main__":
         num_workers=cfg.num_workers,
     )
     # shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
-    # collate_fn in DataLoader is the thing that mentioned in masking strategy ijepa paper page 12 (gemini said).
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
         # print(context_indecies, targets_indecies)
-        print(xb)
+        # print(xb)
         break
