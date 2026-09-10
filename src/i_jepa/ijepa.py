@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import os
 import sys; sys.path.append(".")
 from config import Config
+from multiprocessing import Value
 torch.manual_seed(0)
 
 # Install small subset of Imagenet1k
@@ -41,11 +42,24 @@ class Make_transform():
 class Mask_collator():
     def __init__(self):
         self.finetune = False
-        self.num_patches = (cfg.crop_size//cfg.patch_size)**2 # int 196
+        self._iter_counter = Value('i', -1) # shared int across workers
+
+    def step(self):
+        i = self._iter_counter
+        with i.get_lock():
+            i.value += 1
+            v = i.value
+        return v
+
     def __call__(self, list_of_i1l1_dicts):
         B = len(list_of_i1l1_dicts)
         xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
         xb = xbyb_dict["image"]
+
+        seed = self.step() # seed 0 at the start
+        g = torch.Generator().manual_seed(seed)
+        
+
 
         # do generetor or still manual_seed(0)?: self._itr_counter, def step(self) in src/masks/multiblock.py
         # sys.exit(0)
