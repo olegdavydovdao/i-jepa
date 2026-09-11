@@ -69,9 +69,15 @@ class Mask_collator():
             w -= 1
         return (h,w) # (cfg.height-1, cfg.width-1) is max
 
-    def _sample_block_mask(self, mask_size): # acceptable_regions
+    def _sample_block_mask(self, mask_size, acceptable_regions=None):
+        def context_rm_overlap_targets(mask, tries):
+            N = max(len(acceptable_regions)-tries, 0) # in my case tries always 0
+            for k in range(N): # always 4
+                mask *= acceptable_regions[k]
+            return mask
+
         h,w = mask_size
-        # tries = 0
+        tries = 0
         # timeout = og_timeout = 20
         valid_mask = False
         while not valid_mask:
@@ -83,6 +89,8 @@ class Mask_collator():
             # !!! Mistake?: with h=13 always last row and dim == 0, 14 + 13 = 27 pathces never used. 14% of image never used.
             # to fix: check lines: 66,68,79,80
             mask[top:top+h, left:left+w] = 1
+            if acceptable_regions is not None:
+                mask = context_rm_overlap_targets(mask, tries)
             mask_indices = torch.nonzero(mask.flatten())
 
             # i don't need this. # my code min is 25 patches, not in config
@@ -94,9 +102,12 @@ class Mask_collator():
             #         timeout = og_timeout
 
         mask_indices = mask_indices.squeeze()
-        mask_inverse = torch.ones((cfg.height, cfg.width), dtype=torch.int32)
-        mask_inverse[top:top+h, left:left+w] = 0
+        mask_inverse = None
+        if acceptable_regions is None:
+            mask_inverse = torch.ones((cfg.height, cfg.width), dtype=torch.int32)
+            mask_inverse[top:top+h, left:left+w] = 0
         return mask_indices, mask_inverse
+        
 
     def __call__(self, list_of_i1l1_dicts):
         B = len(list_of_i1l1_dicts)
@@ -117,7 +128,7 @@ class Mask_collator():
         min_keep_target = cfg.num_patches
         min_keep_context= cfg.num_patches
         for _ in range(B):
-            # target 4 block mask for each image
+            # target 4 block masks for each image
             masks_t_idxs, masks_t_inv = [], [] # 4 target blocks to 1 image
             for _ in range(cfg.num_target_masks): # 4
                 mask_t_indicies, mask_t_inverse = self._sample_block_mask(target_size)
@@ -125,10 +136,12 @@ class Mask_collator():
                 masks_t_inv.append(mask_t_inverse)
                 min_keep_target = min(min_keep_target, len(mask_t_indicies))
             collated_t_idxs.append(masks_t_idxs) # for B image grab 4 target block
-            acceptable_regions = masks_t_inv
 
             # context block mask for each image
-
+            masks_c_idxs = []
+            for _ in range(cfg.num_context_masks): # 1
+                mask, _ = self._sample_block_mask(context_size, acceptable_regions=masks_t_inv)
+            sys.exit(0)
         
         # src/masks/multiblock.py
         context_mask_patch_indices = None
