@@ -27,7 +27,7 @@ class Config:
     context_aspect_ratio_range: tuple = (1.0, 1.0)
     context_mask_scale_range: tuple = (0.85, 1.0)
     num_context_masks: int = 1
-    min_num_context_patches: int = 10
+    min_mask_size: int = 10
 
     # Model
 

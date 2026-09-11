@@ -63,11 +63,40 @@ class Mask_collator():
         # aspect_ratio = h/w | max_keep = h*w
         h = round(math.sqrt(max_keep * aspect_ratio))
         w = round(math.sqrt(max_keep / aspect_ratio))
-        while h >= cfg.height:
+        while h >= cfg.height: # max is 13. mistake?
             h -= 1
         while w >= cfg.width:
             w -= 1
         return (h,w) # (cfg.height-1, cfg.width-1) is max
+
+    def _sample_block_mask(self, mask_size): # acceptable_regions
+        h,w = mask_size
+        # tries = 0
+        # timeout = og_timeout = 20
+        valid_mask = False
+        while not valid_mask:
+            # sample top-left corner of the mask block
+            top = torch.randint(0, cfg.height - h, (1,)) # +1 to (13,13) give random place
+            left = torch.randint(0, cfg.width - w, (1,)) # and (14,14) works fine.
+            # from top-left corner draw mask
+            mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
+            # !!! Mistake?: with h=13 always last row and dim == 0, 14 + 13 = 27 pathces never used. 14% of image never used.
+            # to fix: check lines: 66,68,79,80
+            mask[top:top+h, left:left+w] = 1
+            mask_indices = torch.nonzero(mask.flatten())
+
+            # i don't need this. # my code min is 25 patches, not in config
+            valid_mask = len(mask)>cfg.min_mask_size
+            # if not valid_mask:
+            #     timeout -= 1
+            #     if timeout == 0:
+            #         tries += 1
+            #         timeout = og_timeout
+
+        mask_indices = mask_indices.squeeze()
+        mask_inverse = torch.ones((cfg.height, cfg.width), dtype=torch.int32)
+        mask_inverse[top:top+h, left:left+w] = 0
+        return mask_indices, mask_inverse
 
     def __call__(self, list_of_i1l1_dicts):
         B = len(list_of_i1l1_dicts)
@@ -76,10 +105,25 @@ class Mask_collator():
 
         seed = self.step() # seed 0 at the start
         g = torch.Generator().manual_seed(seed)
+
+        # get masks sizes 
         target_size = self._sample_block_size(g, cfg.target_mask_scale_range, cfg.target_aspect_ratio_range)
         context_size = self._sample_block_size(g, cfg.context_mask_scale_range, cfg.context_aspect_ratio_range)
         print(f"{target_size=}")
         print(f"{context_size=}")
+
+        # get masks
+        context_mask_indecies, targets_mask_indicies = [],[]
+        min_keep_target = cfg.num_patches
+        min_keep_context= cfg.num_patches
+        for _ in range(B): # for each image independently
+            masks_target, masks_context = [], []
+            for _ in range(cfg.num_target_masks): # 4
+                mask_t_indicies, mask_t_inverse = self._sample_block_mask(target_size)
+                # mask_t_indicies, mask_t_inverse = self._sample_block_mask(context_size)
+                print(f"{mask_t_indicies=}")
+                print(mask_t_inverse)
+                sys.exit(0)
         
         # src/masks/multiblock.py
         context_mask_patch_indices = None
