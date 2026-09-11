@@ -113,17 +113,22 @@ class Mask_collator():
         print(f"{context_size=}")
 
         # get masks
-        context_mask_indecies, targets_mask_indicies = [],[]
+        collated_t_idxs, collated_c_idxs = [],[]
         min_keep_target = cfg.num_patches
         min_keep_context= cfg.num_patches
-        for _ in range(B): # for each image independently
-            masks_target, masks_context = [], []
+        for _ in range(B):
+            # target 4 block mask for each image
+            masks_t_idxs, masks_t_inv = [], [] # 4 target blocks to 1 image
             for _ in range(cfg.num_target_masks): # 4
                 mask_t_indicies, mask_t_inverse = self._sample_block_mask(target_size)
-                # mask_t_indicies, mask_t_inverse = self._sample_block_mask(context_size)
-                print(f"{mask_t_indicies=}")
-                print(mask_t_inverse)
-                sys.exit(0)
+                masks_t_idxs.append(mask_t_indicies)
+                masks_t_inv.append(mask_t_inverse)
+                min_keep_target = min(min_keep_target, len(mask_t_indicies))
+            collated_t_idxs.append(masks_t_idxs) # for B image grab 4 target block
+            acceptable_regions = masks_t_inv
+
+            # context block mask for each image
+
         
         # src/masks/multiblock.py
         context_mask_patch_indices = None
