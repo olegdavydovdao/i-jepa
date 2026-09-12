@@ -11,6 +11,8 @@ from multiprocessing import Value
 import math
 torch.manual_seed(0)
 
+# --------------------------------------------------------------------------------
+
 # Install small subset of Imagenet1k
 # Note: for full Imagenet code slightly will change due without .save_to_disk()
 def install_data_folder_tiny(split):
@@ -77,6 +79,7 @@ class Mask_collator():
             return mask
 
         h,w = mask_size
+        # print(f"h*w for each mask {h*w}")
         tries = 0
         # timeout = og_timeout = 20
         valid_mask = False
@@ -129,25 +132,29 @@ class Mask_collator():
         min_keep_context= cfg.num_patches
         for _ in range(B):
             # target 4 block masks for each image
-            masks_t_idxs, masks_t_inv = [], [] # 4 target blocks to 1 image
+            masks_t_idxs, masks_t_inv = [], []
             for _ in range(cfg.num_target_masks): # 4
                 mask_t_indicies, mask_t_inverse = self._sample_block_mask(target_size)
-                masks_t_idxs.append(mask_t_indicies)
+                masks_t_idxs.append(mask_t_indicies) # list of 4 tensors
                 masks_t_inv.append(mask_t_inverse)
                 min_keep_target = min(min_keep_target, len(mask_t_indicies))
-            collated_t_idxs.append(masks_t_idxs) # for B image grab 4 target block
+            collated_t_idxs.append(masks_t_idxs)
 
             # context block mask for each image
             masks_c_idxs = []
             for _ in range(cfg.num_context_masks): # 1
-                mask, _ = self._sample_block_mask(context_size, acceptable_regions=masks_t_inv)
-            sys.exit(0)
-        
-        # src/masks/multiblock.py
-        context_mask_patch_indices = None
-        target_mask4_patch_indices = None
+                mask_c_indicies, _ = self._sample_block_mask(context_size, acceptable_regions=masks_t_inv)
+                masks_c_idxs.append(mask_c_indicies)
+                min_keep_context = min(min_keep_context, len(mask_c_indicies))
+            collated_c_idxs.append(masks_c_idxs)
 
-        return_list = [xb, context_mask_patch_indices, target_mask4_patch_indices]
+        # list of list of 4 tensors
+        collated_t_idxs = [[t_mask[:min_keep_target] for t_mask in list_n_ts] for list_n_ts in collated_t_idxs]
+        collated_t_idxs = torch.utils.data.default_collate(collated_t_idxs)
+        collated_c_idxs = [[c_mask[:min_keep_context] for c_mask in list_n_c] for list_n_c in collated_c_idxs]
+        collated_c_idxs = torch.utils.data.default_collate(collated_c_idxs)
+
+        return_list = [xb, collated_c_idxs, collated_t_idxs]
         if self.finetune:
             yb = xbyb_dict["label"]
             return_list.append(yb)
@@ -170,6 +177,8 @@ make_transform = Make_transform()
 train_data = train_data.with_transform(make_transform)
 mask_collator = Mask_collator()
 
+# --------------------------------------------------------------------------------
+
 if __name__=="__main__":
     data_loader = DataLoader(
         train_data,
@@ -181,6 +190,7 @@ if __name__=="__main__":
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
-        # print(context_indecies, targets_indecies)
+        print(context_indecies)
+        print(targets_indecies)
         # print(xb)
         break
