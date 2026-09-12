@@ -40,7 +40,7 @@ class Make_transform():
         n_rows["image"] = [self.transform(img) for img in n_rows["image"]]
         return n_rows
 
-# Converting the HF data and mask strategy
+# Collate function and mask strategy
 class Mask_collator():
     def __init__(self):
         self.finetune = False
@@ -54,22 +54,22 @@ class Mask_collator():
         return v
 
     def _sample_block_size(self, g, mask_scale_range, aspect_ratio_range):
-        # sample block scale
+        # sample 1 block scale to 1 batch
         _rand = torch.rand(1, generator=g).item()
         min_s, max_s = mask_scale_range
         mask_scale = min_s + _rand * (max_s-min_s)
         max_keep = int(mask_scale * cfg.num_patches)
-        # sample block aspect ratio
+        # sample 1 block aspect ratio to 1 batch
         min_ar, max_ar = aspect_ratio_range
         aspect_ratio = min_ar + _rand * (max_ar-min_ar)
         # aspect_ratio = h/w | max_keep = h*w
         h = round(math.sqrt(max_keep * aspect_ratio))
         w = round(math.sqrt(max_keep / aspect_ratio))
-        while h >= cfg.height: # max is 13. mistake?
+        while h > cfg.height:
             h -= 1
-        while w >= cfg.width:
+        while w > cfg.width:
             w -= 1
-        return (h,w) # (cfg.height-1, cfg.width-1) is max
+        return (h,w) # max_h == cfg.height
 
     def _sample_block_mask(self, mask_size, acceptable_regions=None):
         def context_rm_overlap_targets(mask, tries):
@@ -85,12 +85,10 @@ class Mask_collator():
         valid_mask = False
         while not valid_mask:
             # sample top-left corner of the mask block
-            top = torch.randint(0, cfg.height - h, (1,)) # +1 to (13,13) give random place
-            left = torch.randint(0, cfg.width - w, (1,)) # and (14,14) works fine.
+            top = torch.randint(0, 1+cfg.height - h, (1,))
+            left = torch.randint(0, 1+cfg.width - w, (1,))
             # from top-left corner draw mask
             mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
-            # !!! Mistake?: with h=13 always last row and dim == 0, 14 + 13 = 27 pathces never used. 14% of image never used.
-            # to fix: check lines: 66,68,79,80
             mask[top:top+h, left:left+w] = 1
             if acceptable_regions is not None:
                 mask = context_rm_overlap_targets(mask, tries)
