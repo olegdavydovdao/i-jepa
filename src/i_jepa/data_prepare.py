@@ -71,44 +71,29 @@ class Mask_collator():
             w -= 1
         return (h,w) # max_h == cfg.height
 
-    def _sample_block_mask(self, mask_size, acceptable_regions=None):
-        def context_rm_overlap_targets(mask, tries):
-            N = max(len(acceptable_regions)-tries, 0) # in my case tries always 0
-            for k in range(N): # always 4
-                mask *= acceptable_regions[k]
+    def _sample_block_mask(self, mask_size, masks_t_inv=None):
+        def context_rm_overlap_targets(mask):
+            N = max(len(masks_t_inv), 0)
+            for k in range(N):
+                mask *= masks_t_inv[k]
             return mask
 
         h,w = mask_size
-        # print(f"h*w for each mask {h*w}")
-        tries = 0
-        # timeout = og_timeout = 20
-        valid_mask = False
-        while not valid_mask:
-            # sample top-left corner of the mask block
-            top = torch.randint(0, 1+cfg.height - h, (1,))
-            left = torch.randint(0, 1+cfg.width - w, (1,))
-            # from top-left corner draw mask
-            mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
-            mask[top:top+h, left:left+w] = 1
-            if acceptable_regions is not None:
-                mask = context_rm_overlap_targets(mask, tries)
-            mask_indices = torch.nonzero(mask.flatten())
-
-            # i don't need this. # my code min is 25 patches, not in config
-            valid_mask = len(mask)>cfg.min_mask_size
-            # if not valid_mask:
-            #     timeout -= 1
-            #     if timeout == 0:
-            #         tries += 1
-            #         timeout = og_timeout
-
+        # sample top-left corner of the mask block
+        top = torch.randint(0, 1+cfg.height - h, (1,))
+        left = torch.randint(0, 1+cfg.width - w, (1,))
+        # from top-left corner draw mask
+        mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
+        mask[top:top+h, left:left+w] = 1
+        if masks_t_inv is not None:
+            mask = context_rm_overlap_targets(mask)
+        mask_indices = torch.nonzero(mask.flatten())
         mask_indices = mask_indices.squeeze()
         mask_inverse = None
-        if acceptable_regions is None:
+        if masks_t_inv is None:
             mask_inverse = torch.ones((cfg.height, cfg.width), dtype=torch.int32)
             mask_inverse[top:top+h, left:left+w] = 0
         return mask_indices, mask_inverse
-        
 
     def __call__(self, list_of_i1l1_dicts):
         B = len(list_of_i1l1_dicts)
@@ -141,7 +126,7 @@ class Mask_collator():
             # context block mask for each image
             masks_c_idxs = []
             for _ in range(cfg.num_context_masks): # 1
-                mask_c_indicies, _ = self._sample_block_mask(context_size, acceptable_regions=masks_t_inv)
+                mask_c_indicies, _ = self._sample_block_mask(context_size, masks_t_inv=masks_t_inv)
                 masks_c_idxs.append(mask_c_indicies)
                 min_keep_context = min(min_keep_context, len(mask_c_indicies))
             collated_c_idxs.append(masks_c_idxs)
