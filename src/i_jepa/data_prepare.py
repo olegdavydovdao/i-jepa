@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 from datasets import load_from_disk, load_dataset, Dataset
 from torchvision.transforms import v2
 from torch.utils.data import DataLoader
@@ -9,12 +8,10 @@ import sys; sys.path.append(".")
 from config import Config
 from multiprocessing import Value
 import math
-torch.manual_seed(0)
 
 # --------------------------------------------------------------------------------
 
 # Install small subset of Imagenet1k
-# Note: for full Imagenet code slightly will change due without .save_to_disk()
 def install_data_folder_tiny(split):
     assert split in ["train", "validation"], 'argument in install_data_folder() should be: "train" or "validation"'
     print(f'Data folder {split} is missing, starting download "tiny" Imagenet1k {split} set from Hugging Face')
@@ -26,6 +23,10 @@ def install_data_folder_tiny(split):
     local_dataset = Dataset.from_generator(lambda: iter(subset_stream))
     split_path = f"{cfg.tiny_data_folder_name}/{split}"
     local_dataset.save_to_disk(split_path)
+
+def install_all_imagenet1k(split):
+    # Note: code slightly will change in calling stage due without .save_to_disk()
+    pass
 
 # n_rows with raw images -> n_rows with 224x224 crop tensor for each image independently
 class Make_transform():
@@ -41,6 +42,7 @@ class Make_transform():
         return n_rows
 
 # Collate function and mask strategy
+# My mask strategy is fixed and specialized. To general case masks need add safety code.
 class Mask_collator():
     def __init__(self):
         self.finetune = False
@@ -53,13 +55,12 @@ class Mask_collator():
             v = i.value
         return v
 
+    # sample 1 aspect_ratio and 1 mask_scale to 1 batch
     def _sample_block_size(self, g, mask_scale_range, aspect_ratio_range):
-        # sample 1 block scale to 1 batch
         _rand = torch.rand(1, generator=g).item()
         min_s, max_s = mask_scale_range
         mask_scale = min_s + _rand * (max_s-min_s)
         max_keep = int(mask_scale * cfg.num_patches)
-        # sample 1 block aspect ratio to 1 batch
         min_ar, max_ar = aspect_ratio_range
         aspect_ratio = min_ar + _rand * (max_ar-min_ar)
         # aspect_ratio = h/w | max_keep = h*w
@@ -72,8 +73,9 @@ class Mask_collator():
         return (h,w) # max_h == cfg.height
 
     def _sample_block_mask(self, mask_size, masks_t_inv=None):
+        # with targets masks_t_inv=None | with context masks_t_inv=not None
         def context_rm_overlap_targets(mask):
-            N = max(len(masks_t_inv), 0)
+            N = len(masks_t_inv)
             for k in range(N):
                 mask *= masks_t_inv[k]
             return mask
@@ -82,7 +84,7 @@ class Mask_collator():
         # sample top-left corner of the mask block
         top = torch.randint(0, 1+cfg.height - h, (1,))
         left = torch.randint(0, 1+cfg.width - w, (1,))
-        # from top-left corner draw mask
+        # from top-left corner draw the mask
         mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
         mask[top:top+h, left:left+w] = 1
         if masks_t_inv is not None:
@@ -96,34 +98,34 @@ class Mask_collator():
         return mask_indices, mask_inverse
 
     def __call__(self, list_of_i1l1_dicts):
+        # get xb tensor (B,C,H,W) in my case (B,3,224,224)
         B = len(list_of_i1l1_dicts)
         xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
         xb = xbyb_dict["image"]
 
+        # seed to mask shape reproducibility
         seed = self.step() # seed 0 at the start
         g = torch.Generator().manual_seed(seed)
 
-        # get masks sizes 
+        # get masks sizes shared to 1 Batch with seed
         target_size = self._sample_block_size(g, cfg.target_mask_scale_range, cfg.target_aspect_ratio_range)
         context_size = self._sample_block_size(g, cfg.context_mask_scale_range, cfg.context_aspect_ratio_range)
-        print(f"{target_size=}")
-        print(f"{context_size=}")
 
-        # get masks
+        # get masks: locations without seed
         collated_t_idxs, collated_c_idxs = [],[]
         min_keep_target = cfg.num_patches
         min_keep_context= cfg.num_patches
-        for _ in range(B):
-            # target 4 block masks for each image
+        for _ in range(B): # loop over B images
+            # get M target masks for each image. here M==4
             masks_t_idxs, masks_t_inv = [], []
-            for _ in range(cfg.num_target_masks): # 4
+            for _ in range(cfg.num_target_masks):
                 mask_t_indicies, mask_t_inverse = self._sample_block_mask(target_size)
-                masks_t_idxs.append(mask_t_indicies) # list of 4 tensors
+                masks_t_idxs.append(mask_t_indicies)
                 masks_t_inv.append(mask_t_inverse)
                 min_keep_target = min(min_keep_target, len(mask_t_indicies))
             collated_t_idxs.append(masks_t_idxs)
 
-            # context block mask for each image
+            # get context mask for each image
             masks_c_idxs = []
             for _ in range(cfg.num_context_masks): # 1
                 mask_c_indicies, _ = self._sample_block_mask(context_size, masks_t_inv=masks_t_inv)
@@ -131,21 +133,21 @@ class Mask_collator():
                 min_keep_context = min(min_keep_context, len(mask_c_indicies))
             collated_c_idxs.append(masks_c_idxs)
 
-        # list of list of 4 tensors
+        # list of list of 4 tensors. Restrict length of patches to effective GPU batch matrix multiply.
         collated_t_idxs = [[t_mask[:min_keep_target] for t_mask in list_n_ts] for list_n_ts in collated_t_idxs]
         collated_t_idxs = torch.utils.data.default_collate(collated_t_idxs)
         collated_c_idxs = [[c_mask[:min_keep_context] for c_mask in list_n_c] for list_n_c in collated_c_idxs]
         collated_c_idxs = torch.utils.data.default_collate(collated_c_idxs)
 
-        return_list = [xb, collated_c_idxs, collated_t_idxs]
+        # return list of elements with respect to stage(pretrain or finetune)
         if self.finetune:
             yb = xbyb_dict["label"]
-            return_list.append(yb)
-            return *return_list,
-        return *return_list,
+            return xb, yb
+        return xb, collated_c_idxs, collated_t_idxs
 
 # --------------------------------------------------------------------------------
 
+torch.manual_seed(0)
 cfg = Config()
 # ImageNet_tiny data installation at 1st run
 if os.path.isdir(cfg.tiny_data_folder_name):
@@ -173,7 +175,7 @@ if __name__=="__main__":
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
-        print(context_indecies)
-        print(targets_indecies)
-        # print(xb)
+        # print(context_indecies)
+        # print(targets_indecies)
+        print(xb)
         break
