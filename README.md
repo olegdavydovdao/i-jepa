@@ -2,21 +2,27 @@
 Reimplement the I-JEPA paper from scratch.
 
 ## Fix a bug in original I-JEPA
-The bug is that the context and target masks never select the last row and last column of the patch grid.\
-For example: in patch grid (14,14). 13 row and 13 column is always 0 and can't be choseen 1 by code.\
-This cause that these patches never used for context or target masks, but still computes.\
-In case (14,14) patch grid 14+13=27 patches is always computes by masking strategy and computes in main model but never selected\
-13.7% computes are wasted and context_size_scale == (0.85, 1.0) is don't work because always get (13,13) and this static image in context.
+For example: in patch grid (14,14).
+1) with h >= cfg.height leads to h_max == cfg.height-1 i.e max choosen grid is (13,13)\
+this destroy the idea of context_size_scale == (0.85, 1.0), moreover in my case with point 2 it leads to static context mask
+2) torch.randint(0, cfg.height - h, (1,)) and point 1 leads to:\
+13 row and 13 column of patches never selected by target and context masks.
 
-Path to my code: Mask_collator class/_sample_block_size function
+14+13=27 patches are wasted. 27/196 = 13.77% computes are wasted in mask strategy plus in ViT target computes.\
+ViT context: never get these patches hence not learn.\
+ViT target: computes these patches but never selected as targets hence learn very bad.
+
 ```python
+# Path to my code: src\i_jepa\data_prepare.py\Mask_collator class\_sample_block_size function \ 69 line
+# Path to original code: https://github.com/facebookresearch/ijepa/blob/main/src/masks/multiblock.py#L128 \ MaskCollator class\_sample_block_size function \ 67 line
 while h > cfg.height: # > instead of >=
     h -= 1
 while w > cfg.width: # > instead of >=
     w -= 1
 ```
-Path to my code: Mask_collator class/_sample_block_mask function
 ```python
+# Path to my code: src\i_jepa\data_prepare.py\Mask_collator class\function \ 85 line
+# Path to original code: https://github.com/facebookresearch/ijepa/blob/main/src/masks/multiblock.py#L128 \ MaskCollator class\_sample_block_mask function \ 89 line
 top = torch.randint(0, 1+cfg.height - h, (1,)) # (1+cfg.height - h) instead of (cfg.height - h)
 left = torch.randint(0, 1+cfg.width - w, (1,)) # (1+cfg.width - w) instead of (cfg.width - w)
 ```
