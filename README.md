@@ -9,8 +9,8 @@ this destroy the idea of context_size_scale == (0.85, 1.0), moreover in my case 
 13 row and 13 column of patches never selected by target and context masks.
 
 14+13=27 patches are wasted. 27/196 = 13.77% computes are wasted in mask strategy plus in ViT target computes.\
-ViT context: never get these patches hence not learn.\
-ViT target: computes these patches but never selected as targets hence learn very bad (indirectly through attention).
+ViT-context: never get these patches hence not learn.\
+ViT-target: computes these patches but never selected as targets, not learn beacuse ViT-target is EMA ViT-context.
 
 ```python
 # Path to my code: src\i_jepa\data_prepare.py\Mask_collator class\_sample_block_size function \ 69 line
