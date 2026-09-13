@@ -165,13 +165,22 @@ mask_collator = Mask_collator()
 # --------------------------------------------------------------------------------
 
 if __name__=="__main__":
+    # for DDP training | it has own shuffle=True
+    # dist_sampler = torch.utils.data.distributed.DistributedSampler(
+    #     dataset=dataset,
+    #     num_replicas=world_size, # = 1
+    #     rank=rank) # = 0
+
     data_loader = DataLoader(
         train_data,
         batch_size=cfg.batch_size,
         collate_fn=mask_collator,
         num_workers=cfg.num_workers,
+        # sampler = dist_sampler,
+        # drop_last=True,
+        # pin_memory=True,
+        # persistent_workers=False,
     )
-    # shuffle or sampler(<- i need it): how it happens and how do it to (image,label) not destroy?
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
