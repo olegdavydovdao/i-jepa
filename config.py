@@ -31,3 +31,4 @@ class Config:
     # Model
 
     # Optimization
+    num_epochs: int = 1

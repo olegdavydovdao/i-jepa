@@ -177,14 +177,19 @@ if __name__=="__main__":
         collate_fn=mask_collator,
         num_workers=cfg.num_workers,
         # sampler = dist_sampler,
-        # drop_last=True,
-        # pin_memory=True,
-        # persistent_workers=False,
+        drop_last=True,
+        pin_memory=True, # in future code xb = xb.to('cuda', non_blocking=True)
+        persistent_workers=False,
+        # shuffle = True # implemented in dist_sampler if DDP
     )
+
+# for epoch in range(cfg.num_epochs):
+    # dist_sampler.set_epoch(epoch) 
+    # only after set_epoch call the loop through data_loader
 
     for xb, context_indecies, targets_indecies in data_loader:
         print(xb.shape)
-        print(context_indecies)
-        print(targets_indecies)
+        # print(context_indecies)
+        # print(targets_indecies)
         print(xb)
         break
