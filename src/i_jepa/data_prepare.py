@@ -166,30 +166,29 @@ mask_collator = Mask_collator()
 
 if __name__=="__main__":
     # for DDP training | it has own shuffle=True
-    # dist_sampler = torch.utils.data.distributed.DistributedSampler(
-    #     dataset=dataset,
-    #     num_replicas=world_size, # = 1
-    #     rank=rank) # = 0
+    dist_sampler = torch.utils.data.distributed.DistributedSampler(
+        dataset=train_data,
+        num_replicas=cfg.world_size,
+        rank=cfg.rank,
+        shuffle = True,
+    )
 
     data_loader = DataLoader(
         train_data,
         batch_size=cfg.batch_size,
         collate_fn=mask_collator,
         num_workers=cfg.num_workers,
-        # sampler = dist_sampler,
+        sampler = dist_sampler,
         drop_last=True,
         pin_memory=True, # in future code xb = xb.to('cuda', non_blocking=True)
         persistent_workers=False,
-        # shuffle = True # implemented in dist_sampler if DDP
     )
 
-# for epoch in range(cfg.num_epochs):
-    # dist_sampler.set_epoch(epoch) 
-    # only after set_epoch call the loop through data_loader
-
-    for xb, context_indecies, targets_indecies in data_loader:
-        print(xb.shape)
-        # print(context_indecies)
-        # print(targets_indecies)
-        print(xb)
-        break
+    for epoch in range(cfg.num_epochs):
+        dist_sampler.set_epoch(epoch) 
+        for xb, context_indecies, targets_indecies in data_loader:
+            print(xb.shape)
+            # print(context_indecies)
+            # print(targets_indecies)
+            print(xb)
+            break

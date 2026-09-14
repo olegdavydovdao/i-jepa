@@ -32,3 +32,5 @@ class Config:
 
     # Optimization
     num_epochs: int = 1
+    world_size: int = 1
+    rank: int = 0

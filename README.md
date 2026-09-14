@@ -4,7 +4,7 @@ Reimplement the I-JEPA paper from scratch.
 ## Fix a bug in original I-JEPA
 For example: in patch grid (14,14).
 1) with h >= cfg.height leads to h_max == cfg.height-1 i.e max choosen grid is (13,13)\
-this destroy the idea of context_size_scale == (0.85, 1.0), moreover in my case with point 2 it leads to static context mask
+this destroy the idea of context_size_scale == (0.85, 1.0), moreover in my case with point 2 it leads to static context mask.
 2) torch.randint(0, cfg.height - h, (1,)) and point 1 leads to:\
 13 row and 13 column of patches never selected by target and context masks.
 
