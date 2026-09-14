@@ -19,6 +19,7 @@ class Config:
     width: int = crop_size[1]//patch_size # 14
     num_patches: int = height*width # 196
     allow_overlap: bool = False
+    min_mask_num_patches = 10
     # targets masks
     target_aspect_ratio_range: tuple = (0.75, 1.5) # h/w
     target_mask_scale_range: tuple = (0.15, 0.2)

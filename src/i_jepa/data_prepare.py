@@ -81,15 +81,32 @@ class Mask_collator():
             return mask
 
         h,w = mask_size
-        # sample top-left corner of the mask block
-        top = torch.randint(0, 1+cfg.height - h, (1,))
-        left = torch.randint(0, 1+cfg.width - w, (1,))
-        # from top-left corner draw the mask
-        mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
-        mask[top:top+h, left:left+w] = 1
-        if masks_t_inv is not None: # for context
-            mask = context_rm_overlap_targets(mask)
-        mask_indices = torch.nonzero(mask.flatten())
+        tries = 0
+        timeout = og_timeout = 20
+        valid_mask = False
+        while not valid_mask:
+            # sample top-left corner of the mask block
+            top = torch.randint(0, 1+cfg.height - h, (1,))
+            left = torch.randint(0, 1+cfg.width - w, (1,))
+            # from top-left corner draw the mask
+            mask = torch.zeros((cfg.height, cfg.width), dtype=torch.int32)
+            mask[top:top+h, left:left+w] = 1
+            if masks_t_inv is not None: # for context
+                mask = context_rm_overlap_targets(mask)
+            mask_indices = torch.nonzero(mask.flatten())
+            valid_mask = len(mask_indices) >= cfg.min_mask_num_patches
+            if not valid_mask: # in my case: it only for context masks
+                timeout -= 1
+                if timeout == 0:
+                    tries += 1
+                    timeout = og_timeout
+                    print(f"Mask is too small, tries:{tries}, increasing h or w by 1")
+                    if h + 1 <= cfg.height:
+                        h += 1
+                    elif w + 1 <= cfg.width:
+                        w += 1
+                    print(f"new (h,w) == ({h,w})")
+
         mask_indices = mask_indices.squeeze()
         mask_inverse = None
         if masks_t_inv is None: # for targets

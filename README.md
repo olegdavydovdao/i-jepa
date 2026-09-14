@@ -30,6 +30,16 @@ ViT-context: never get these patches as input hence not learn.\
 ViT-target: computes these patches but output never selected as targets, not learn beacuse ViT-target is EMA ViT-context.
 
 
+Bug number 2.
+Context can not remove all target masks. what break masking strategy.\
+I understand that its usefull for experiments with masking strategy, but for fixed settings is may lead to bug, for example in case (14,14) patch grid.\
+Right now i don't know handle this issue in later code of I-JEPA. I need to check.\
+I mean if target that was deleted by tries is predicted with context that was not remove this target mask is a bug, else: is not a bug.\
+```python
+N = len(masks_t_inv)
+# instead of:
+N = max(int(len(acceptable_regions)-tries), 0)
+```
 ## Citations
 
 I-JEPA original
