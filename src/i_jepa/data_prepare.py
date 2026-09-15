@@ -100,12 +100,12 @@ class Mask_collator():
                 if timeout == 0:
                     tries += 1
                     timeout = og_timeout
-                    print(f"Mask is too small, tries:{tries}, increasing h or w by 1")
+                    print(f"Mask is too small, tries:{tries}")
                     if h + 1 <= cfg.height:
                         h += 1
-                    elif w + 1 <= cfg.width:
+                    if w + 1 <= cfg.width:
                         w += 1
-                    print(f"new (h,w) == ({h,w})")
+                    print(f"new (h,w) == {h,w}")
 
         mask_indices = mask_indices.squeeze()
         mask_inverse = None

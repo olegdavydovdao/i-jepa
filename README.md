@@ -1,9 +1,9 @@
 # I-JEPA
 Reimplement the I-JEPA paper from scratch.
 
-## Fix a bug in original I-JEPA
-Bug in masking strategy:
-- Last row and column in patch grid never selected in context and target masks.
+## Fix bugs in original I-JEPA
+### Bug 1 in masking strategy:
+Last row and column in patch grid never selected in context and target masks.
 ```python
 # Path to my code: src\i_jepa\data_prepare.py\ 69 and 85 lines
 # Path to original code: src\masks\multiblock.py\ 67 and 89 lines
@@ -30,16 +30,33 @@ ViT-context: never get these patches as input hence not learn.\
 ViT-target: computes these patches but output never selected as targets, not learn beacuse ViT-target is EMA ViT-context.
 
 
-Bug number 2.
-Context can not remove all target masks. what break masking strategy.\
-I understand that its usefull for experiments with masking strategy, but for fixed settings is may lead to bug, for example in case (14,14) patch grid.\
-Right now i don't know handle this issue in later code of I-JEPA. I need to check.\
-I mean if target that was deleted by tries is predicted with context that was not remove this target mask is a bug, else: is not a bug.\
+### Bug 2 in masking strategy:
+**The problem:**\
+In original I-JEPA this code prevents infinity loop.
 ```python
-N = len(masks_t_inv)
-# instead of:
-N = max(int(len(acceptable_regions)-tries), 0)
+N = max(int(len(acceptable_regions)-tries), 0) # 79 line of orig i-jepa multiblock.py
+for k in range(N):
+    mask *= acceptable_regions[k]
 ```
+But it's introduces a leak in rare cases:\
+Context mask can overlap target masks.\
+for example tries == 1: context mask not remove the last target mask.\
+**My solution:**
+```python
+N = len(masks_t_inv) # line 78
+for k in range(N):
+    mask *= masks_t_inv[k]
+# if context mask is small.
+if h + 1 <= cfg.height: # line 104
+    h += 1
+if w + 1 <= cfg.width:
+    w += 1
+```
+This code prevents infinity loop and leak information with standart I-JEPA config.\
+Shape  (h, w) could be not identical across batch in rare cases,\
+but [c_mask[:min_keep_context]] restriction ensures that num of pathces across batch is always identical.\
+My code never allow context overlap with targets.
+
 ## Citations
 
 I-JEPA original
