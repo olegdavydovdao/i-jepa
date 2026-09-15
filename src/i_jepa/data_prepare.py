@@ -7,6 +7,7 @@ import sys; sys.path.append(".")
 from config import Config
 from multiprocessing import Value
 import math
+from logging import getLogger
 
 # --------------------------------------------------------------------------------
 
@@ -100,12 +101,11 @@ class Mask_collator():
                 if timeout == 0:
                     tries += 1
                     timeout = og_timeout
-                    print(f"Mask is too small, tries:{tries}")
                     if h + 1 <= cfg.height:
                         h += 1
                     if w + 1 <= cfg.width:
                         w += 1
-                    print(f"new (h,w) == {h,w}")
+                    logger.warning(f"Mask is too small, tries:{tries} | new (h,w) == {h,w}")
 
         mask_indices = mask_indices.squeeze()
         mask_inverse = None
@@ -143,6 +143,8 @@ class Mask_collator():
             collated_t_idxs.append(masks_t_idxs)
 
             # get context mask for each image
+            if cfg.allow_overlap:
+                masks_t_inv = None
             masks_c_idxs = []
             for _ in range(cfg.num_context_masks): # 1
                 mask_c_indicies, _ = self._sample_block_mask(context_size, masks_t_inv=masks_t_inv)
@@ -164,6 +166,7 @@ class Mask_collator():
 
 # --------------------------------------------------------------------------------
 
+logger = getLogger()
 torch.manual_seed(0)
 cfg = Config()
 # ImageNet_tiny data installation at 1st run
@@ -206,6 +209,8 @@ if __name__=="__main__":
         for xb, context_indecies, targets_indecies in data_loader:
             print(xb.shape)
             # print(context_indecies)
-            # print(targets_indecies)
-            print(xb)
+            # print()
+            # for k in range(len(targets_indecies)):
+            #     print(targets_indecies[k])
+            # print(xb)
             break

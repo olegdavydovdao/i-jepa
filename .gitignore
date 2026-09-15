@@ -11,6 +11,7 @@ wheels/
 
 # Experiments with jupyter notebook
 experiments.ipynb
+play.py
 
 # Tiny data installed
 imagenet1k_tiny/
