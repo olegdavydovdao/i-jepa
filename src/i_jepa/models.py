@@ -1,6 +1,15 @@
 import torch
 import torch.nn as nn
 
+class PatchEmbed(nn.Module):
+    pass
+
+def get_2d_sincos_pos_embed():
+    pass
+
+def get_2d_sincos_pos_embed_from_grid():
+    pass
+
 class Attention(nn.Module):
     pass
 
