@@ -47,12 +47,13 @@ if __name__=="__main__":
     )
 
     for epoch in range(cfg.num_epochs):
-        dist_sampler.set_epoch(epoch) 
+        dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
             # print(xb.shape)
+            # print(xb)
+            
             # print(context_indecies)
             # print()
             # for k in range(len(targets_indecies)):
             #     print(targets_indecies[k])
-            print(xb)
             break
