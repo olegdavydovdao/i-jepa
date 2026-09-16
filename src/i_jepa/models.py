@@ -1,5 +1,9 @@
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
+import sys; sys.path.append(".")
+from config import Config
+from src.i_jepa import data_prepare
 
 class PatchEmbed(nn.Module):
     pass
