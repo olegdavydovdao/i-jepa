@@ -6,7 +6,7 @@ import sys; sys.path.append(".")
 from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
-from src.i_jepa.models import PatchEmbed
+from src.i_jepa.models import PatchEmbed, EncoderViT
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -49,12 +49,12 @@ def main():
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
-    patch_embed = PatchEmbed(cfg)
+    encoder_vit = EncoderViT(cfg)
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
-            out = patch_embed(xb)
+            out = encoder_vit(xb)
             print(out.shape)
             
             # print(f"{xb.shape=}")
@@ -63,6 +63,8 @@ def main():
             # print()
             # for k in range(len(targets_indecies)):
             #     print(targets_indecies[k])
+            # print(type(context_indecies))
+            # print(type(targets_indecies))
             break
 
 if __name__ == "__main__":
