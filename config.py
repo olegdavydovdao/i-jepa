@@ -30,6 +30,8 @@ class Config:
     num_context_masks: int = 1
 
     # Model
+    num_img_channels: int = 3
+    emb_dims: int = 768
 
     # Optimization
     num_epochs: int = 1

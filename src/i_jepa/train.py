@@ -6,6 +6,8 @@ import sys; sys.path.append(".")
 from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
+from src.i_jepa.models import PatchEmbed
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
@@ -46,13 +48,17 @@ def main():
         pin_memory=True, # in future code xb = xb.to('cuda', non_blocking=True)
         persistent_workers=False,
     )
+# --------------------------------------------------------------------------------
+    patch_embed = PatchEmbed(cfg)
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
-            print(f"{xb.shape=}")
+            out = patch_embed(xb)
+            print(out.shape)
+            
+            # print(f"{xb.shape=}")
             # print(xb)
-
             # print(context_indecies)
             # print()
             # for k in range(len(targets_indecies)):
