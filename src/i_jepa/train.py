@@ -4,31 +4,30 @@ from torch.utils.data import DataLoader
 import os
 import sys; sys.path.append(".")
 from config import Config
-from logging import getLogger
+import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
-logger = getLogger()
-torch.manual_seed(0)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(0)
-cfg = Config()
-# ImageNet_tiny data installation at 1st run
-if os.path.isdir(cfg.tiny_data_folder_name):
-    pass
-else:
-    install_data_folder_tiny(cfg, "train")
-    install_data_folder_tiny(cfg, "validation")
+def main():
+    torch.manual_seed(0)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(0)
+    cfg = Config()
+    # ImageNet_tiny data installation at 1st run
+    if os.path.isdir(cfg.tiny_data_folder_name):
+        pass
+    else:
+        install_data_folder_tiny(cfg, "train")
+        install_data_folder_tiny(cfg, "validation")
 
-# Load and pre-transform train data
-train_data = load_from_disk(f"{cfg.tiny_data_folder_name}/train")
-make_transform = Make_transform(cfg)
-train_data = train_data.with_transform(make_transform)
-mask_collator = Mask_collator(cfg)
+    # Load and pre-transform train data
+    train_data = load_from_disk(f"{cfg.tiny_data_folder_name}/train")
+    make_transform = Make_transform(cfg)
+    train_data = train_data.with_transform(make_transform)
+    mask_collator = Mask_collator(cfg)
 
-# --------------------------------------------------------------------------------
-
-if __name__=="__main__":
     # for DDP training | it has own shuffle=True
     dist_sampler = torch.utils.data.distributed.DistributedSampler(
         dataset=train_data,
@@ -59,3 +58,6 @@ if __name__=="__main__":
             # for k in range(len(targets_indecies)):
             #     print(targets_indecies[k])
             break
+
+if __name__ == "__main__":
+    main()
