@@ -10,6 +10,8 @@ from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Ma
 # --------------------------------------------------------------------------------
 logger = getLogger()
 torch.manual_seed(0)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(0)
 cfg = Config()
 # ImageNet_tiny data installation at 1st run
 if os.path.isdir(cfg.tiny_data_folder_name):
@@ -49,9 +51,9 @@ if __name__=="__main__":
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
-            # print(xb.shape)
+            print(f"{xb.shape=}")
             # print(xb)
-            
+
             # print(context_indecies)
             # print()
             # for k in range(len(targets_indecies)):
