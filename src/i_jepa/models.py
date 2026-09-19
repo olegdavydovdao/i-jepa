@@ -17,14 +17,14 @@ def get_2d_sincos_pos_embed(cfg):
     w_range = torch.arange(cfg.width, dtype=torch.float32)
     grid = torch.meshgrid(h_range, w_range, indexing='ij')
     grid = torch.stack(grid).view(2,1,cfg.height,cfg.width)
-    print(grid)
+    # print(grid)
     # sys.exit(0)
-    pos_embed = get_2d_sincos_pos_embed_from_grid(cfg, grid)
+    pos_embed = get_2d_sincos_pos_embed_from_grid(cfg.emb_dims, grid)
     return pos_embed
 
-def get_2d_sincos_pos_embed_from_grid(cfg, grid):
-    assert cfg.emb_dims % 2 == 0
-    half_emb_dims = cfg.emb_dims//2
+def get_2d_sincos_pos_embed_from_grid(emb_dims, grid):
+    assert emb_dims % 2 == 0
+    half_emb_dims = emb_dims//2
     emb_h = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[1])
     emb_w = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[0])
     emb = torch.cat((emb_h, emb_w), dim=1)
