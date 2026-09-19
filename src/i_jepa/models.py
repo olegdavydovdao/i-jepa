@@ -19,7 +19,7 @@ def get_2d_sincos_pos_embed(cfg):
     grid = torch.meshgrid(h_range, w_range, indexing='ij')
     grid = torch.stack(grid)
     pos_embed = get_2d_sincos_pos_embed_from_grid(cfg.emb_dims, grid)
-    return pos_embed
+    return pos_embed # (N, D)
 
 def get_2d_sincos_pos_embed_from_grid(emb_dims, grid):
     assert emb_dims % 2 == 0
@@ -57,9 +57,8 @@ class EncoderViT(nn.Module):
         self.patch_embed = PatchEmbed(cfg)
         self.pos_embed = nn.Parameter(torch.zeros(1, cfg.num_patches, cfg.emb_dims), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
-        # print(pos_embed.shape)
-        sys.exit(0)
-        
+        with torch.no_grad():
+            self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
     def forward(self, x, masks=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, T, C)
         return x

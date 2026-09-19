@@ -49,8 +49,13 @@ def main():
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
+    device = 'cpu'
+    if torch.cuda.is_available():
+        device = cfg.device
+    print(f"using device: {device}")
     encoder_vit = EncoderViT(cfg)
-
+    encoder_vit.to(device)
+    
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:

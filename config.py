@@ -30,6 +30,7 @@ class Config:
     num_context_masks: int = 1
 
     # Models: ViT-B/16
+    device: str = 'cuda'
     # Enocder
     num_img_channels: int = 3
     emb_dims: int = 768
