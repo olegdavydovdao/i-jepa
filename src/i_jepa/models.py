@@ -17,15 +17,9 @@ def get_2d_sincos_pos_embed(cfg):
     w_range = torch.arange(cfg.width, dtype=torch.float32)
     grid = torch.meshgrid(h_range, w_range, indexing='ij')
     grid = torch.stack(grid).view(2,1,cfg.height,cfg.width)
-    # print(grid)
-    # grid_h = np.arange(14, dtype=float)
-    # grid_w = np.arange(14, dtype=float)
-    # grid = np.meshgrid(grid_w, grid_h)  # here w goes first
-    # grid = np.stack(grid, axis=0)
-    # grid = grid.reshape([2, 1, 14, 14])
-    # print(grid)
-    pos_embed = get_2d_sincos_pos_embed_from_grid(cfg, grid)
+    print(grid)
     # sys.exit(0)
+    pos_embed = get_2d_sincos_pos_embed_from_grid(cfg, grid)
     return pos_embed
 
 def get_2d_sincos_pos_embed_from_grid(cfg, grid):
