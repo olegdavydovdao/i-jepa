@@ -32,7 +32,7 @@ ViT-target: computes these patches but output never selected as targets, not lea
 
 ### Bug 2 in masking strategy:
 **The problem:**\
-In original I-JEPA this code prevents infinity loop and useful for experiments without fixed settings, but with fixed params I think it is a bug.
+In original I-JEPA this code prevents infinity loop and useful for experiments without fixed settings to detect which setup of masking strategy how often length of masks are descending to less then threshold, but with fixed I-JEPA standart params I think it is a bug.
 ```python
 N = max(int(len(acceptable_regions)-tries), 0) # 79 line of orig i-jepa multiblock.py
 for k in range(N):

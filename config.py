@@ -29,9 +29,19 @@ class Config:
     context_mask_scale_range: tuple = (0.85, 1.0)
     num_context_masks: int = 1
 
-    # Model
+    # Models: ViT-B/16
+    # Enocder
     num_img_channels: int = 3
     emb_dims: int = 768
+    num_heads: int = 12
+    depth: int = 12
+    mlp_expander: int = 4
+    qkv_bias: bool = True
+    qk_scale: None = None
+
+    # Predictor
+    pred_emb_dims: int = 384
+    pred_depth: int = 6
 
     # Optimization
     num_epochs: int = 1
