@@ -24,8 +24,8 @@ def get_2d_sincos_pos_embed(cfg):
 def get_2d_sincos_pos_embed_from_grid(emb_dims, grid):
     assert emb_dims % 2 == 0
     half_emb_dims = emb_dims//2
-    emb_h = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[1]) # (N, D//2)
-    emb_w = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[0]) # (N, D//2)
+    emb_h = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[0]) # (N, D//2)
+    emb_w = get_1d_sincos_pos_embed_from_grid(half_emb_dims, grid[1]) # (N, D//2)
     emb = torch.cat((emb_h, emb_w), dim=1) # (N, D)
     return emb
 

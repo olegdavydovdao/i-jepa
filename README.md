@@ -57,6 +57,18 @@ Shape  (h, w) could be not identical across batch in rare cases,\
 but [c_mask[:min_keep_context]] restriction ensures that num of pathces across batch is always identical.\
 My code never allow context overlap with targets.
 
+### Naming convention issue in positional embeddings
+This non-technical bug (the issue). They do:
+```bibtex
+# Pseudocode:
+emb_h = logical encoding to width in 2D patch grid
+emb_w = logical encoding to height in 2D patch grid
+```
+All works fine, even with the logical naming issue.\
+Later in code they concat this emb_h and emb_w.\
+Positional embeddings technical get both: height and width encoding,\
+but not in the order corresponding to the names.
+
 ## Citations
 
 I-JEPA original
