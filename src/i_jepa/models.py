@@ -54,13 +54,17 @@ class Block(nn.Module):
 class EncoderViT(nn.Module):
     def __init__(self, cfg):
         super().__init__()
+        self.cfg = cfg
         self.patch_embed = PatchEmbed(cfg)
         self.pos_embed = nn.Parameter(torch.zeros(1, cfg.num_patches, cfg.emb_dims), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
         with torch.no_grad():
             self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
     def forward(self, x, masks=None): # x is (B,3,224,224)
-        x = self.patch_embed(x) # (B, T, C)
+        x = self.patch_embed(x) # (B, N, D)
+        B, N, D = x.shape
+        assert N == self.cfg.num_patches, f"(N={N}) != (num_patches={self.cfg.num_patches})"
+        x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
         return x
 
 class PredictorViT(nn.Module):

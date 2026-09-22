@@ -50,8 +50,8 @@ def main():
     )
 # --------------------------------------------------------------------------------
     device = 'cpu'
-    if torch.cuda.is_available():
-        device = cfg.device
+    # if torch.cuda.is_available():
+    #     device = cfg.device
     print(f"using device: {device}")
     encoder_vit = EncoderViT(cfg)
     encoder_vit.to(device)
