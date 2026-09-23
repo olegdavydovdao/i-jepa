@@ -42,6 +42,7 @@ class Config:
     qk_scale: None = None
     drop: float = 0.0
     attn_drop: float = 0.0
+    eps_layer_norm: float = 1e-6
 
     # Predictor
     pred_emb_dims: int = 384

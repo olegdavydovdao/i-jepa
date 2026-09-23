@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import sys; sys.path.append(".")
 import numpy as np
+from functools import partial
 
 
 class PatchEmbed(nn.Module):
@@ -49,12 +50,13 @@ class MLP(nn.Module):
     pass
 
 class Block(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, layer_norm):
         super().__init__()
-        self.ln_1 = nn.LayerNorm(cfg.emb_dims)
+        self.ln_1 = layer_norm(cfg.emb_dims)
         self.attn = Attention(cfg)
-        self.ln_2 = nn.LayerNorm(cfg.emb_dims)
+        self.ln_2 = layer_norm(cfg.emb_dims)
         self.mlp = MLP(cfg)
+        sys.exit(0)
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
@@ -77,8 +79,9 @@ class EncoderViT(nn.Module):
         pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
         with torch.no_grad():
             self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
-        self.blocks = nn.ModuleList([Block(cfg) for _ in range(cfg.depth)])
-        self.ln_f = nn.LayerNorm(cfg.emb_dims)
+        layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
+        self.blocks = nn.ModuleList([Block(cfg, layer_norm=layer_norm) for _ in range(cfg.depth)])
+        self.ln_f = layer_norm(cfg.emb_dims)
     def forward(self, x, masks=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
