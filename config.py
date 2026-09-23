@@ -29,7 +29,8 @@ class Config:
     context_mask_scale_range: tuple = (0.85, 1.0)
     num_context_masks: int = 1
 
-    # Models: ViT-B/16
+    # Models: ViT-B/16 86M for debug | tiny 5.7M or small 22M for training
+    # num_of_GPU min to enable DDP == 2 | GPU == A100
     device: str = 'cuda'
     # Enocder
     num_img_channels: int = 3

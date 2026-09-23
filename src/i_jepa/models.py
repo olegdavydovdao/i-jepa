@@ -49,7 +49,17 @@ class MLP(nn.Module):
     pass
 
 class Block(nn.Module):
-    pass
+    def __init__(self, cfg):
+        super().__init__()
+        self.ln_1 = nn.LayerNorm(cfg.emb_dims)
+        self.attn = Attention(cfg)
+        self.ln_2 = nn.LayerNorm(cfg.emb_dims)
+        self.mlp = MLP(cfg)
+
+    def forward(self, x):
+        x = x + self.attn(self.ln_1(x))
+        x = x + self.mlp(self.ln_2(x))
+        return x
 
 def apply_masks(x, masks): # x = (B,N,D)
     all_x = []
@@ -80,7 +90,8 @@ class EncoderViT(nn.Module):
             x = apply_masks(x, masks) # (B, N_restrict, D) restict in this case context
 
         # Transformer blocks
-
+        for block in self.blocks:
+            x = block(x)
 
         # final layer norm
         x = self.ln_f(x)
