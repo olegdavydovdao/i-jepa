@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 import sys; sys.path.append(".")
 import numpy as np
 from functools import partial
@@ -44,10 +45,32 @@ def get_1d_sincos_pos_embed_from_grid(half_emb_dims, pos):
     return emb
 
 class Attention(nn.Module):
-    pass
+    def __init__(self, cfg):
+        super().__init__()
+        assert cfg.emb_dims % cfg.num_heads == 0
+        self.qkv = nn.Linear(cfg.emb_dims, 3*cfg.emb_dims, bias=cfg.qkv_bias)
+        self.proj = nn.Linear(cfg.emb_dims, cfg.emb_dims)
+        self.num_heads = cfg.num_heads
+        self.head_dim = cfg.head_dim
+        self.emb_dims = cfg.emb_dims
+
+    def forward(self, x):
+        B, T, C = x.shape
+        qkv = self.qkv(x) # (B,T,3C)
+        q,k,v = qkv.split(self.emb_dims, dim=2) # each (B,T,C)
+        q,k,v = [i.view(B,T, self.num_heads, self.head_dim).transpose(1,2) for i in [q,k,v]]
+        # q,k,v are each (B,n_h,T,H)
+        # scaled_dot_product_attention: att = q@k*scale -> att = softmax(dim=-1) -> att@v
+        x = F.scaled_dot_product_attention(q,k,v, is_causal=False) # (B,n_h,T,H)
+        x = x.transpose(1,2).contiguous().view(B,T,C)
+        x = self.proj(x)
+        return x
+
 
 class MLP(nn.Module):
-    pass
+    def __init__(self, cfg):
+        super().__init__()
+        pass
 
 class Block(nn.Module):
     def __init__(self, cfg, layer_norm):
@@ -56,7 +79,6 @@ class Block(nn.Module):
         self.attn = Attention(cfg)
         self.ln_2 = layer_norm(cfg.emb_dims)
         self.mlp = MLP(cfg)
-        sys.exit(0)
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
@@ -73,7 +95,7 @@ def apply_masks(x, masks): # x = (B,N,D)
 class EncoderViT(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.cfg = cfg
+        self.num_patches = cfg.num_patches
         self.patch_embed = PatchEmbed(cfg)
         self.pos_embed = nn.Parameter(torch.zeros(1, cfg.num_patches, cfg.emb_dims), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
@@ -85,7 +107,7 @@ class EncoderViT(nn.Module):
     def forward(self, x, masks=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
-        assert N == self.cfg.num_patches, f"(N={N}) != (num_patches={self.cfg.num_patches})"
+        assert N == self.num_patches, f"(N={N}) != (num_patches={self.num_patches})"
         x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
 
         # restrict x only to allowable tokens

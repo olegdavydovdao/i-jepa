@@ -36,12 +36,10 @@ class Config:
     num_img_channels: int = 3
     emb_dims: int = 768
     num_heads: int = 12
+    head_dim: int = emb_dims // num_heads # 64
     depth: int = 12
     mlp_expander: int = 4
     qkv_bias: bool = True
-    qk_scale: None = None
-    drop: float = 0.0
-    attn_drop: float = 0.0
     eps_layer_norm: float = 1e-6
 
     # Predictor
