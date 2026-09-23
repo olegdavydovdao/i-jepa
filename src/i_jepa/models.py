@@ -51,6 +51,13 @@ class MLP(nn.Module):
 class Block(nn.Module):
     pass
 
+def apply_masks(x, masks): # x = (B,N,D)
+    all_x = []
+    for m_tok_keep in masks: # m_tok_keep == (B, restrict_num_context)
+        m_tok_keep = m_tok_keep.unsqueeze(-1).repeat(1,1,x.shape[-1]) # (B, restrict_num_context,D)
+        all_x += [torch.gather(x, dim=1, index=m_tok_keep)]
+    return torch.cat(all_x, dim=0)
+
 class EncoderViT(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -65,6 +72,10 @@ class EncoderViT(nn.Module):
         B, N, D = x.shape
         assert N == self.cfg.num_patches, f"(N={N}) != (num_patches={self.cfg.num_patches})"
         x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
+        if masks is not None:
+            x = apply_masks(x, masks) # (B, N_restrict, D) restict in this case context
+            print(x.shape)
+            sys.exit(0)
         return x
 
 class PredictorViT(nn.Module):

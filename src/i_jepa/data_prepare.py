@@ -152,6 +152,7 @@ class Mask_collator():
             collated_c_idxs.append(masks_c_idxs)
 
         # list of list of 4 tensors. Restrict num of patches to be equal over a batch. Cause: effective GPU batch matrix multiply.
+        # Reduce min_keep_target to nearest even number to effective GPU compute?
         collated_t_idxs = [[t_mask[:min_keep_target] for t_mask in list_n_ts] for list_n_ts in collated_t_idxs] # in my case is always equal but i want this shield.
         collated_t_idxs = torch.utils.data.default_collate(collated_t_idxs)
         collated_c_idxs = [[c_mask[:min_keep_context] for c_mask in list_n_c] for list_n_c in collated_c_idxs]

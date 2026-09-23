@@ -53,13 +53,13 @@ def main():
     # if torch.cuda.is_available():
     #     device = cfg.device
     print(f"using device: {device}")
-    encoder_vit = EncoderViT(cfg)
-    encoder_vit.to(device)
+    encoder_vit_context = EncoderViT(cfg)
+    encoder_vit_context.to(device)
     
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
-            out = encoder_vit(xb)
+            out = encoder_vit_context(xb, masks=context_indecies)
             # print(out.shape)
             
             # print(f"{xb.shape=}")
