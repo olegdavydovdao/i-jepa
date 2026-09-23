@@ -39,6 +39,8 @@ class Config:
     mlp_expander: int = 4
     qkv_bias: bool = True
     qk_scale: None = None
+    drop: float = 0.0
+    attn_drop: float = 0.0
 
     # Predictor
     pred_emb_dims: int = 384
@@ -48,3 +50,4 @@ class Config:
     num_epochs: int = 1
     world_size: int = 1
     rank: int = 0
+    init_std: float = 0.02

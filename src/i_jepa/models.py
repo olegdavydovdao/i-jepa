@@ -67,15 +67,23 @@ class EncoderViT(nn.Module):
         pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
         with torch.no_grad():
             self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
+        self.blocks = nn.ModuleList([Block(cfg) for _ in range(cfg.depth)])
+        self.ln_f = nn.LayerNorm(cfg.emb_dims)
     def forward(self, x, masks=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
         assert N == self.cfg.num_patches, f"(N={N}) != (num_patches={self.cfg.num_patches})"
         x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
+
+        # restrict x only to allowable tokens
         if masks is not None:
             x = apply_masks(x, masks) # (B, N_restrict, D) restict in this case context
-            print(x.shape)
-            sys.exit(0)
+
+        # Transformer blocks
+
+
+        # final layer norm
+        x = self.ln_f(x)
         return x
 
 class PredictorViT(nn.Module):
