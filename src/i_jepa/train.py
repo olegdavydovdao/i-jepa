@@ -59,8 +59,13 @@ def main():
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
-            out = encoder_vit_context(xb, masks=context_indecies)
-            # print(f"{out.shape} from out data_loader")
+            s_x = encoder_vit_context(xb, masks_context=context_indecies)
+            print(f"{s_x.shape} from out data_loader")
+
+            # Target branch
+            # with.torch.no_grad:
+                #   s_y = encoder_vit_context(xb)
+                #   s_y = apply_masks(s_y)
             
             # print(f"{xb.shape=}")
             # print(xb)
