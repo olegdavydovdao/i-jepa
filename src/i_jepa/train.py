@@ -6,7 +6,7 @@ import sys; sys.path.append(".")
 from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
-from src.i_jepa.models import PatchEmbed, EncoderViT
+from src.i_jepa.models import EncoderViT, PredictorViT
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -54,13 +54,16 @@ def main():
     #     device = cfg.device
     print(f"using device: {device}")
     encoder_vit_context = EncoderViT(cfg)
+    predictor_vit = PredictorViT(cfg)
     encoder_vit_context.to(device)
     
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
             s_x = encoder_vit_context(xb, masks_context=context_indecies)
-            print(f"{s_x.shape} from out data_loader")
+            # print(f"{s_x.shape} from s_x data_loader")
+
+            s_y_pred = predictor_vit(s_x)
 
             # Target branch
             # with.torch.no_grad:

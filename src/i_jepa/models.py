@@ -151,4 +151,29 @@ class EncoderViT(nn.Module):
         return x
 
 class PredictorViT(nn.Module):
-    pass
+    def __init__(self,cfg):
+        super().__init__()
+        layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
+        self.init_std = cfg.init_std
+        self.pred_depth = cfg.pred_depth
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        def wei_bias_init(std):
+            nn.init.normal_(module.weight, std=std)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+
+        std = self.init_std
+        if isinstance(module, nn.Linear):
+            if hasattr(module, 'FLAG_SCALE_INIT_RESIDUAL'):
+                std*=(2*self.pred_depth)**-0.5
+            wei_bias_init(std=std)
+        # delete if not using in predictor
+        # elif isinstance(module, nn.Conv2d):
+        #     wei_bias_init(std=std)
+
+    def forward(self, x):
+        print(x.shape)
+        sys.exit(0)
+        
