@@ -132,15 +132,15 @@ class EncoderViT(nn.Module):
         elif isinstance(module, nn.Conv2d):
             wei_bias_init(std=std)
 
-    def forward(self, x, masks=None): # x is (B,3,224,224)
+    def forward(self, x, masks_context=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
         assert N == self.num_patches, f"(N={N}) != (num_patches={self.num_patches})"
         x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
 
         # restrict x only to allowable tokens
-        if masks is not None:
-            x = apply_masks(x, masks) # (B, N_restrict, D) restict in this case context
+        if masks_context is not None:
+            x = apply_masks(x, masks=masks_context) # (B, N_restrict, D) restict in this case context
 
         # Transformer blocks
         for block in self.blocks:
