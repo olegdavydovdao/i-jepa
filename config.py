@@ -41,6 +41,7 @@ class Config:
     mlp_expander: int = 4
     qkv_bias: bool = True
     eps_layer_norm: float = 1e-6
+    init_std = 0.02
 
     # Predictor
     pred_emb_dims: int = 384

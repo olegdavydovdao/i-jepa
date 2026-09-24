@@ -50,6 +50,7 @@ class Attention(nn.Module):
         assert cfg.emb_dims % cfg.num_heads == 0
         self.qkv = nn.Linear(cfg.emb_dims, 3*cfg.emb_dims, bias=cfg.qkv_bias)
         self.proj = nn.Linear(cfg.emb_dims, cfg.emb_dims)
+        self.proj.FLAG_SCALE_INIT_RESIDUAL = 1
         self.num_heads = cfg.num_heads
         self.head_dim = cfg.head_dim
         self.emb_dims = cfg.emb_dims
@@ -73,6 +74,7 @@ class MLP(nn.Module):
         self.c_fc = nn.Linear(cfg.emb_dims, cfg.mlp_expander*cfg.emb_dims)
         self.gelu = nn.GELU()
         self.proj = nn.Linear(cfg.mlp_expander*cfg.emb_dims, cfg.emb_dims)
+        self.proj.FLAG_SCALE_INIT_RESIDUAL = 1
 
     def forward(self, x):
         x = self.c_fc(x)
@@ -112,6 +114,24 @@ class EncoderViT(nn.Module):
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
         self.blocks = nn.ModuleList([Block(cfg, layer_norm=layer_norm) for _ in range(cfg.depth)])
         self.ln_f = layer_norm(cfg.emb_dims)
+        self.init_std = cfg.init_std
+        self.depth = cfg.depth
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        def wei_bias_init(std):
+            nn.init.normal_(module.weight, std=std)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+
+        std = self.init_std
+        if isinstance(module, nn.Linear):
+            if hasattr(module, 'FLAG_SCALE_INIT_RESIDUAL'):
+                std*=(2*self.depth)**-0.5
+            wei_bias_init(std=std)
+        elif isinstance(module, nn.Conv2d):
+            wei_bias_init(std=std)
+
     def forward(self, x, masks=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
