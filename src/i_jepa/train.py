@@ -60,7 +60,7 @@ def main():
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
             out = encoder_vit_context(xb, masks=context_indecies)
-            # print(out.shape)
+            # print(f"{out.shape} from out data_loader")
             
             # print(f"{xb.shape=}")
             # print(xb)

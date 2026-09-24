@@ -70,7 +70,15 @@ class Attention(nn.Module):
 class MLP(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        pass
+        self.c_fc = nn.Linear(cfg.emb_dims, cfg.mlp_expander*cfg.emb_dims)
+        self.gelu = nn.GELU()
+        self.proj = nn.Linear(cfg.mlp_expander*cfg.emb_dims, cfg.emb_dims)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = self.gelu(x)
+        x = self.proj(x)
+        return x
 
 class Block(nn.Module):
     def __init__(self, cfg, layer_norm):
