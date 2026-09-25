@@ -167,6 +167,7 @@ class PredictorViT(nn.Module):
         self.pred_depth = cfg.pred_depth
         self.predictor_blocks = nn.ModuleList([Block(cfg, emb_dim_any=cfg.pred_emb_dims, layer_norm=layer_norm) for _ in range(self.pred_depth)])
         self.predictor_ln_f = layer_norm(cfg.pred_emb_dims)
+        self.predictor_proj = nn.Linear(cfg.pred_emb_dims, cfg.emb_dims)
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -190,8 +191,9 @@ class PredictorViT(nn.Module):
 
         for block in self.predictor_blocks:
             x = block(x)
+        
+        x = x[:, N_lim_cont:]
         x = self.predictor_ln_f(x)
-
-        print(f"{x.shape=}")
-        sys.exit(0)
+        x = self.predictor_proj(x)
+        return x
         

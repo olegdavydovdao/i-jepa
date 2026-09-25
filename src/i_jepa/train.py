@@ -61,12 +61,13 @@ def main():
         dist_sampler.set_epoch(epoch)
         for xb, context_indecies, targets_indecies in data_loader:
             s_x = encoder_vit_context(xb, context_indecies)
-            # print(f"{s_x.shape} from s_x data_loader")
+            print(f"{s_x.shape} from s_x data_loader")
 
             # print(context_indecies)
             # print("---------------------------------")
             # print(targets_indecies)
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
+            print(f"{s_y_pred.shape} from s_y_pred data_loader")
 
             # Target branch
             # with.torch.no_grad:
