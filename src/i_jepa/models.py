@@ -97,8 +97,8 @@ class Block(nn.Module):
 
 def apply_masks(x, masks): # x = (B,N,D)
     all_x = []
-    for m_tok_keep in masks: # m_tok_keep == (B, restrict_num_context)
-        m_tok_keep = m_tok_keep.unsqueeze(-1).repeat(1,1,x.shape[-1]) # (B, restrict_num_context,D)
+    for m_tok_keep in masks: # m_tok_keep == (B, restrict_num_patches)
+        m_tok_keep = m_tok_keep.unsqueeze(-1).repeat(1,1,x.shape[-1]) # (B, restrict_num_patches,D)
         all_x += [torch.gather(x, dim=1, index=m_tok_keep)]
     return torch.cat(all_x, dim=0)
 
@@ -161,8 +161,9 @@ class PredictorViT(nn.Module):
         predictor_pos_embed = get_2d_sincos_pos_embed(cfg, cfg.pred_emb_dims)
         with torch.no_grad():
             self.predictor_pos_embed.copy_(predictor_pos_embed.unsqueeze(0))
-        layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
         self.init_std = cfg.init_std
+        self.mask_token = nn.Parameter(torch.randn(1,1,cfg.pred_emb_dims)*self.init_std)
+        layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
         self.pred_depth = cfg.pred_depth
         self.apply(self._init_weights)
 
@@ -173,10 +174,18 @@ class PredictorViT(nn.Module):
         assert (context_indecies is not None) and (targets_indecies is not None), 'context and target indecies are needed'
         B = x.shape[0]
         x = self.predictor_embed(x)
-        predictor_pos_embed = self.predictor_pos_embed.repeat(B,1,1)
-        predictor_pos_embed = apply_masks(predictor_pos_embed, masks=context_indecies)
-        x = x + predictor_pos_embed
+        pos_embed_cont = self.predictor_pos_embed.repeat(B,1,1) # (B,N,D)
+        pos_embed_cont = apply_masks(pos_embed_cont, masks=context_indecies) # (B,N_lim_cont,D)
+        x = x + pos_embed_cont
+        N_lim_cont, D = x.shape[1], x.shape[2]
+        
+        pos_embed_target = self.predictor_pos_embed.repeat(B,1,1) # (B,N,D)
+        pos_embed_target = apply_masks(pos_embed_target, masks=targets_indecies) # (4*B, N_lim_target, D)
+        pred_tokens = pos_embed_target + self.mask_token
 
-        print(x.shape)
+        x = x.repeat(len(targets_indecies),1,1)
+        x = torch.cat([x, pred_tokens], dim=1)
+
+        print(f"{x.shape=}")
         sys.exit(0)
         
