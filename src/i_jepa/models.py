@@ -102,6 +102,20 @@ def apply_masks(x, masks): # x = (B,N,D)
         all_x += [torch.gather(x, dim=1, index=m_tok_keep)]
     return torch.cat(all_x, dim=0)
 
+def init_weights_shared(module, std, depth_any):
+
+    def wei_bias_init(std):
+        nn.init.normal_(module.weight, std=std)
+        if module.bias is not None:
+            nn.init.zeros_(module.bias)
+
+    if isinstance(module, nn.Linear):
+        if hasattr(module, 'FLAG_SCALE_INIT_RESIDUAL'):
+            std*=(2*depth_any)**-0.5
+        wei_bias_init(std=std)
+    elif isinstance(module, nn.Conv2d):
+        wei_bias_init(std=std)
+
 class EncoderViT(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -119,18 +133,7 @@ class EncoderViT(nn.Module):
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
-        def wei_bias_init(std):
-            nn.init.normal_(module.weight, std=std)
-            if module.bias is not None:
-                nn.init.zeros_(module.bias)
-
-        std = self.init_std
-        if isinstance(module, nn.Linear):
-            if hasattr(module, 'FLAG_SCALE_INIT_RESIDUAL'):
-                std*=(2*self.depth)**-0.5
-            wei_bias_init(std=std)
-        elif isinstance(module, nn.Conv2d):
-            wei_bias_init(std=std)
+        init_weights_shared(module, std=self.init_std, depth_any=self.depth)
 
     def forward(self, x, masks_context=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
@@ -159,19 +162,7 @@ class PredictorViT(nn.Module):
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
-        def wei_bias_init(std):
-            nn.init.normal_(module.weight, std=std)
-            if module.bias is not None:
-                nn.init.zeros_(module.bias)
-
-        std = self.init_std
-        if isinstance(module, nn.Linear):
-            if hasattr(module, 'FLAG_SCALE_INIT_RESIDUAL'):
-                std*=(2*self.pred_depth)**-0.5
-            wei_bias_init(std=std)
-        # delete if not using in predictor
-        # elif isinstance(module, nn.Conv2d):
-        #     wei_bias_init(std=std)
+        init_weights_shared(module, std=self.init_std, depth_any=self.pred_depth)
 
     def forward(self, x):
         print(x.shape)
