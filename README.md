@@ -32,7 +32,7 @@ ViT-target: computes these patches but output never selected as targets, not lea
 
 ### Bug 2 in masking strategy:
 **The problem:**\
-In original I-JEPA this code prevents infinity loop.
+In original I-JEPA this code prevents infinity loop and useful for experiments without fixed settings to detect which setup of masking strategy how often length of masks are descending to less then threshold, but with fixed I-JEPA standart params I think it is a bug.
 ```python
 N = max(int(len(acceptable_regions)-tries), 0) # 79 line of orig i-jepa multiblock.py
 for k in range(N):
@@ -56,6 +56,18 @@ This code prevents infinity loop and leak information with standart I-JEPA confi
 Shape  (h, w) could be not identical across batch in rare cases,\
 but [c_mask[:min_keep_context]] restriction ensures that num of pathces across batch is always identical.\
 My code never allow context overlap with targets.
+
+### Naming convention issue in positional embeddings
+This non-technical bug (the issue). They do:
+```bibtex
+# Pseudocode:
+emb_h = logical encoding embeddings to width in 2D patch grid
+emb_w = logical encoding embeddings to height in 2D patch grid
+```
+All works fine, even with the logical naming issue.\
+Later in code they concat this emb_h and emb_w.\
+Positional embeddings technical get both: height and width encoding,\
+but not in the order corresponding to the names.
 
 ## Citations
 

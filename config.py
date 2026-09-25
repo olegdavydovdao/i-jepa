@@ -29,9 +29,25 @@ class Config:
     context_mask_scale_range: tuple = (0.85, 1.0)
     num_context_masks: int = 1
 
-    # Model
+    # Models: ViT-B/16 86M for debug | tiny 5.7M or small 22M for training
+    # num_of_GPU min to enable DDP == 2 | GPU == A100
+    device: str = 'cuda'
+    # Enocder
+    num_img_channels: int = 3
+    emb_dims: int = 768
+    num_heads: int = 12
+    depth: int = 12
+    mlp_expander: int = 4
+    qkv_bias: bool = True
+    eps_layer_norm: float = 1e-6
+    init_std = 0.02
+
+    # Predictor
+    pred_emb_dims: int = 384
+    pred_depth: int = 6
 
     # Optimization
     num_epochs: int = 1
     world_size: int = 1
     rank: int = 0
+    init_std: float = 0.02
