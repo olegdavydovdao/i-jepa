@@ -135,15 +135,15 @@ class EncoderViT(nn.Module):
     def _init_weights(self, module):
         init_weights_shared(module, std=self.init_std, depth_any=self.depth)
 
-    def forward(self, x, masks_context=None): # x is (B,3,224,224)
+    def forward(self, x, context_indecies=None): # x is (B,3,224,224)
         x = self.patch_embed(x) # (B, N, D)
         B, N, D = x.shape
         assert N == self.num_patches, f"(N={N}) != (num_patches={self.num_patches})"
         x = x + self.pos_embed # (B, N, D) = (B, N, D) + (1, N, D)
 
         # restrict x only to allowable tokens
-        if masks_context is not None:
-            x = apply_masks(x, masks=masks_context) # (B, N_restrict, D) restict in this case context
+        if context_indecies is not None:
+            x = apply_masks(x, masks=context_indecies) # (B, N_restrict, D) restict in this case context
 
         # Transformer blocks
         for block in self.blocks:
@@ -173,6 +173,9 @@ class PredictorViT(nn.Module):
         assert (context_indecies is not None) and (targets_indecies is not None), 'context and target indecies are needed'
         B = x.shape[0]
         x = self.predictor_embed(x)
+        predictor_pos_embed = self.predictor_pos_embed.repeat(B,1,1)
+        predictor_pos_embed = apply_masks(predictor_pos_embed, masks=context_indecies)
+        x = x + predictor_pos_embed
 
         print(x.shape)
         sys.exit(0)
