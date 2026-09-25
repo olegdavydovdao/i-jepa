@@ -63,21 +63,16 @@ def main():
             s_x = encoder_vit_context(xb, masks_context=context_indecies)
             # print(f"{s_x.shape} from s_x data_loader")
 
-            s_y_pred = predictor_vit(s_x)
+            # print(context_indecies)
+            # print("---------------------------------")
+            # print(targets_indecies)
+            s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
 
             # Target branch
             # with.torch.no_grad:
                 #   s_y = encoder_vit_context(xb)
                 #   s_y = apply_masks(s_y)
             
-            # print(f"{xb.shape=}")
-            # print(xb)
-            # print(context_indecies)
-            # print()
-            # for k in range(len(targets_indecies)):
-            #     print(targets_indecies[k])
-            # print(type(context_indecies))
-            # print(type(targets_indecies))
             break
 
 if __name__ == "__main__":

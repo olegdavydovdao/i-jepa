@@ -14,13 +14,13 @@ class PatchEmbed(nn.Module):
         x = self.proj(x).flatten(2).transpose(1,2)
         return x # (B, num_pathces, C)
 
-def get_2d_sincos_pos_embed(cfg):
+def get_2d_sincos_pos_embed(cfg, emb_dims):
     # compute on CPU by default
     h_range = torch.arange(cfg.height, dtype=torch.float32)
     w_range = torch.arange(cfg.width, dtype=torch.float32)
     grid = torch.meshgrid(h_range, w_range, indexing='ij')
     grid = torch.stack(grid)
-    pos_embed = get_2d_sincos_pos_embed_from_grid(cfg.emb_dims, grid)
+    pos_embed = get_2d_sincos_pos_embed_from_grid(emb_dims, grid)
     return pos_embed # (N, D)
 
 def get_2d_sincos_pos_embed_from_grid(emb_dims, grid):
@@ -122,7 +122,7 @@ class EncoderViT(nn.Module):
         self.num_patches = cfg.num_patches
         self.patch_embed = PatchEmbed(cfg)
         self.pos_embed = nn.Parameter(torch.zeros(1, cfg.num_patches, cfg.emb_dims), requires_grad=False)
-        pos_embed = get_2d_sincos_pos_embed(cfg) # (N,D) | on CPU
+        pos_embed = get_2d_sincos_pos_embed(cfg, cfg.emb_dims) # (N,D) | on CPU
         with torch.no_grad():
             self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
@@ -156,6 +156,11 @@ class EncoderViT(nn.Module):
 class PredictorViT(nn.Module):
     def __init__(self,cfg):
         super().__init__()
+        self.predictor_embed = nn.Linear(cfg.emb_dims, cfg.pred_emb_dims)
+        self.predictor_pos_embed = nn.Parameter(torch.zeros(1, cfg.num_patches, cfg.pred_emb_dims), requires_grad=False)
+        predictor_pos_embed = get_2d_sincos_pos_embed(cfg, cfg.pred_emb_dims)
+        with torch.no_grad():
+            self.predictor_pos_embed.copy_(predictor_pos_embed.unsqueeze(0))
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
         self.init_std = cfg.init_std
         self.pred_depth = cfg.pred_depth
@@ -164,7 +169,11 @@ class PredictorViT(nn.Module):
     def _init_weights(self, module):
         init_weights_shared(module, std=self.init_std, depth_any=self.pred_depth)
 
-    def forward(self, x):
+    def forward(self, x, context_indecies, targets_indecies):
+        assert (context_indecies is not None) and (targets_indecies is not None), 'context and target indecies are needed'
+        B = x.shape[0]
+        x = self.predictor_embed(x)
+
         print(x.shape)
         sys.exit(0)
         
