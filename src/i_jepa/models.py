@@ -164,8 +164,9 @@ class PredictorViT(nn.Module):
         self.init_std = cfg.init_std
         self.mask_token = nn.Parameter(torch.randn(1,1,cfg.pred_emb_dims)*self.init_std)
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
-        self.predictor_blocks = nn.ModuleList([Block(cfg, emb_dim_any=cfg.pred_emb_dims, layer_norm=layer_norm) for _ in range(cfg.pred_depth)])
         self.pred_depth = cfg.pred_depth
+        self.predictor_blocks = nn.ModuleList([Block(cfg, emb_dim_any=cfg.pred_emb_dims, layer_norm=layer_norm) for _ in range(self.pred_depth)])
+        self.predictor_ln_f = layer_norm(cfg.pred_emb_dims)
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -189,6 +190,7 @@ class PredictorViT(nn.Module):
 
         for block in self.predictor_blocks:
             x = block(x)
+        x = self.predictor_ln_f(x)
 
         print(f"{x.shape=}")
         sys.exit(0)
