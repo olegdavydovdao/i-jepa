@@ -45,15 +45,15 @@ def get_1d_sincos_pos_embed_from_grid(half_emb_dims, pos):
     return emb
 
 class Attention(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, emb_dim_any):
         super().__init__()
-        assert cfg.emb_dims % cfg.num_heads == 0
-        self.qkv = nn.Linear(cfg.emb_dims, 3*cfg.emb_dims, bias=cfg.qkv_bias)
-        self.proj = nn.Linear(cfg.emb_dims, cfg.emb_dims)
+        assert emb_dim_any % cfg.num_heads == 0
+        self.qkv = nn.Linear(emb_dim_any, 3*emb_dim_any, bias=cfg.qkv_bias)
+        self.proj = nn.Linear(emb_dim_any, emb_dim_any)
         self.proj.FLAG_SCALE_INIT_RESIDUAL = 1
         self.num_heads = cfg.num_heads
         self.head_dim = cfg.head_dim
-        self.emb_dims = cfg.emb_dims
+        self.emb_dims = emb_dim_any
 
     def forward(self, x):
         B, T, C = x.shape
@@ -69,11 +69,11 @@ class Attention(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, emb_dim_any):
         super().__init__()
-        self.c_fc = nn.Linear(cfg.emb_dims, cfg.mlp_expander*cfg.emb_dims)
+        self.c_fc = nn.Linear(emb_dim_any, cfg.mlp_expander*emb_dim_any)
         self.gelu = nn.GELU()
-        self.proj = nn.Linear(cfg.mlp_expander*cfg.emb_dims, cfg.emb_dims)
+        self.proj = nn.Linear(cfg.mlp_expander*emb_dim_any, emb_dim_any)
         self.proj.FLAG_SCALE_INIT_RESIDUAL = 1
 
     def forward(self, x):
@@ -83,12 +83,12 @@ class MLP(nn.Module):
         return x
 
 class Block(nn.Module):
-    def __init__(self, cfg, layer_norm):
+    def __init__(self, cfg, emb_dim_any, layer_norm):
         super().__init__()
-        self.ln_1 = layer_norm(cfg.emb_dims)
-        self.attn = Attention(cfg)
-        self.ln_2 = layer_norm(cfg.emb_dims)
-        self.mlp = MLP(cfg)
+        self.ln_1 = layer_norm(emb_dim_any)
+        self.attn = Attention(cfg, emb_dim_any)
+        self.ln_2 = layer_norm(emb_dim_any)
+        self.mlp = MLP(cfg, emb_dim_any)
 
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
@@ -126,7 +126,7 @@ class EncoderViT(nn.Module):
         with torch.no_grad():
             self.pos_embed.copy_(pos_embed.unsqueeze(0)) # copy on GPU
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
-        self.blocks = nn.ModuleList([Block(cfg, layer_norm=layer_norm) for _ in range(cfg.depth)])
+        self.blocks = nn.ModuleList([Block(cfg, emb_dim_any=cfg.emb_dims, layer_norm=layer_norm) for _ in range(cfg.depth)])
         self.ln_f = layer_norm(cfg.emb_dims)
         self.init_std = cfg.init_std
         self.depth = cfg.depth
