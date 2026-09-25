@@ -52,7 +52,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(emb_dim_any, emb_dim_any)
         self.proj.FLAG_SCALE_INIT_RESIDUAL = 1
         self.num_heads = cfg.num_heads
-        self.head_dim = cfg.head_dim
+        self.head_dim = emb_dim_any // self.num_heads
         self.emb_dims = emb_dim_any
 
     def forward(self, x):
@@ -164,6 +164,7 @@ class PredictorViT(nn.Module):
         self.init_std = cfg.init_std
         self.mask_token = nn.Parameter(torch.randn(1,1,cfg.pred_emb_dims)*self.init_std)
         layer_norm = partial(nn.LayerNorm, eps=cfg.eps_layer_norm)
+        self.predictor_blocks = nn.ModuleList([Block(cfg, emb_dim_any=cfg.pred_emb_dims, layer_norm=layer_norm) for _ in range(cfg.pred_depth)])
         self.pred_depth = cfg.pred_depth
         self.apply(self._init_weights)
 
@@ -185,6 +186,9 @@ class PredictorViT(nn.Module):
 
         x = x.repeat(len(targets_indecies),1,1) # B -> 4B
         x = torch.cat([x, pred_tokens], dim=1) # (4B, N_lim_cont + N_lim_target, D)
+
+        for block in self.predictor_blocks:
+            x = block(x)
 
         print(f"{x.shape=}")
         sys.exit(0)

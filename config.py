@@ -36,7 +36,6 @@ class Config:
     num_img_channels: int = 3
     emb_dims: int = 768
     num_heads: int = 12
-    head_dim: int = emb_dims // num_heads # 64
     depth: int = 12
     mlp_expander: int = 4
     qkv_bias: bool = True
