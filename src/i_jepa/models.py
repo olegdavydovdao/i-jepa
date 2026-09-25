@@ -183,8 +183,8 @@ class PredictorViT(nn.Module):
         pos_embed_target = apply_masks(pos_embed_target, masks=targets_indecies) # (4*B, N_lim_target, D)
         pred_tokens = pos_embed_target + self.mask_token
 
-        x = x.repeat(len(targets_indecies),1,1)
-        x = torch.cat([x, pred_tokens], dim=1)
+        x = x.repeat(len(targets_indecies),1,1) # B -> 4B
+        x = torch.cat([x, pred_tokens], dim=1) # (4B, N_lim_cont + N_lim_target, D)
 
         print(f"{x.shape=}")
         sys.exit(0)
