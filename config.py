@@ -46,7 +46,8 @@ class Config:
 
     # Optimization
     num_epochs: int = 1
-    world_size: int = 1
-    rank: int = 0
-    ## num_of_GPU min to enable DDP == 2 | GPU == A100
+    
+    ## cuda | GPU == A100 for future
     device: str = 'cuda'
+    world_size: int = 1 # to enable DDP == 2
+    rank: int = 0

@@ -50,25 +50,23 @@ def main():
     )
 # --------------------------------------------------------------------------------
     device = 'cpu'
-    # if torch.cuda.is_available():
-    #     device = cfg.device
+    if torch.cuda.is_available():
+        device = cfg.device
     print(f"using device: {device}")
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
     encoder_vit_context.to(device)
+    predictor_vit.to(device)
     
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
-        for xb, context_indecies, targets_indecies in data_loader:
+        for step, (xb, context_indecies, targets_indecies) in enumerate(data_loader):
             s_x = encoder_vit_context(xb, context_indecies)
             print(f"{s_x.shape} from s_x data_loader")
 
-            # print(context_indecies)
-            # print("---------------------------------")
-            # print(targets_indecies)
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
             print(f"{s_y_pred.shape} from s_y_pred data_loader")
-
+            print(f"{step=}")
             # Target branch
             # with.torch.no_grad:
                 #   s_y = encoder_vit_context(xb)
