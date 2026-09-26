@@ -1,4 +1,5 @@
 import torch
+from torch.nn import functional as F
 from datasets import load_from_disk
 from torch.utils.data import DataLoader
 import os
@@ -6,7 +7,7 @@ import sys; sys.path.append(".")
 from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
-from src.i_jepa.models import EncoderViT, PredictorViT
+from src.i_jepa.models import EncoderViT, PredictorViT, apply_masks
 import copy
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -53,7 +54,7 @@ def main():
     device = 'cpu'
     if torch.cuda.is_available():
         device = cfg.device
-    print(f"using device: {device}")
+    # print(f"using device: {device}")
 
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
@@ -72,14 +73,17 @@ def main():
             targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
             
             s_x = encoder_vit_context(xb, context_indecies)
-            print(f"{s_x.shape} from s_x data_loader")
+            # print(f"{s_x.shape} from s_x data_loader")
 
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
             print(f"{s_y_pred.shape} | {s_y_pred.device} from s_y_pred data_loader")
+
             # Target branch
-            # with.torch.no_grad:
-                #   s_y = encoder_vit_context(xb)
-                #   s_y = apply_masks(s_y)
+            with torch.no_grad():
+                s_y = target_encoder_vit(xb)
+                s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
+                s_y = apply_masks(s_y, targets_indecies)
+                print(f"{s_y.shape} | {s_y.device} from s_y data_loader")
             
             break
 
