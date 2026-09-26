@@ -45,7 +45,7 @@ def main():
         num_workers=cfg.num_workers,
         sampler = dist_sampler,
         drop_last=cfg.drop_last_data,
-        pin_memory=cfg.pin_mem, # in future code xb = xb.to('cuda', non_blocking=True)
+        pin_memory=cfg.pin_mem, # relate with non_blocking=True
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
@@ -60,7 +60,12 @@ def main():
     
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
+
         for step, (xb, context_indecies, targets_indecies) in enumerate(data_loader):
+            xb = xb.to(device, non_blocking=True)
+            context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
+            targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
+            
             s_x = encoder_vit_context(xb, context_indecies)
             print(f"{s_x.shape} from s_x data_loader")
 
