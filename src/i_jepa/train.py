@@ -44,8 +44,8 @@ def main():
         collate_fn=mask_collator,
         num_workers=cfg.num_workers,
         sampler = dist_sampler,
-        drop_last=True,
-        pin_memory=True, # in future code xb = xb.to('cuda', non_blocking=True)
+        drop_last=cfg.drop_last_data,
+        pin_memory=cfg.pin_mem, # in future code xb = xb.to('cuda', non_blocking=True)
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
