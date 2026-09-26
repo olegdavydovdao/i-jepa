@@ -84,6 +84,9 @@ def main():
                 s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
                 s_y = apply_masks(s_y, targets_indecies)
                 print(f"{s_y.shape} | {s_y.device} from s_y data_loader")
+
+            loss = F.smooth_l1_loss(s_y_pred, s_y)
+            print(f"{loss=}")
             
             break
 
