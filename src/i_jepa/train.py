@@ -7,6 +7,7 @@ from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
 from src.i_jepa.models import EncoderViT, PredictorViT
+import copy
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -53,11 +54,15 @@ def main():
     if torch.cuda.is_available():
         device = cfg.device
     print(f"using device: {device}")
+
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
     encoder_vit_context.to(device)
     predictor_vit.to(device)
-    
+    target_encoder_vit = copy.deepcopy(encoder_vit_context) # already on cuda
+    for p in target_encoder_vit.parameters():
+        p.requires_grad = False
+
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
 
@@ -70,8 +75,7 @@ def main():
             print(f"{s_x.shape} from s_x data_loader")
 
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
-            print(f"{s_y_pred.shape} from s_y_pred data_loader")
-            print(f"{step=}")
+            print(f"{s_y_pred.shape} | {s_y_pred.device} from s_y_pred data_loader")
             # Target branch
             # with.torch.no_grad:
                 #   s_y = encoder_vit_context(xb)
