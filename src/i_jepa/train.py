@@ -64,10 +64,29 @@ def main():
     for p in target_encoder_vit.parameters():
         p.requires_grad = False
 
+    def params_generator(model):
+        params_2d = (p for n,p in model.named_parameters() if p.requires_grad and p.dim() >= 2)
+        params_1d = (p for n,p in model.named_parameters() if p.requires_grad and p.dim() < 2)
+        return params_2d, params_1d
+    
+    encoder_params_2d, encoder_params_1d = params_generator(encoder_vit_context)
+    predictor_params_2d, predictor_params_1d = params_generator(predictor_vit)
+    param_groups = [
+        # 2d
+        {'params': encoder_params_2d},
+        {'params': predictor_params_2d},
+        # 1d
+        {'params': encoder_params_1d, 'weight_decay': 0.0},
+        {'params': predictor_params_1d, 'weight_decay': 0.0}
+    ]
+    optimizer = torch.optim.AdamW(param_groups, fused=cfg.use_adamw_fused)
+
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
 
         for step, (xb, context_indecies, targets_indecies) in enumerate(data_loader):
+            optimizer.zero_grad()
+
             xb = xb.to(device, non_blocking=True)
             context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
             targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
@@ -76,19 +95,23 @@ def main():
             # print(f"{s_x.shape} from s_x data_loader")
 
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
-            print(f"{s_y_pred.shape} | {s_y_pred.device} from s_y_pred data_loader")
+            # print(f"{s_y_pred.shape} | {s_y_pred.device} from s_y_pred data_loader")
 
             # Target branch
             with torch.no_grad():
                 s_y = target_encoder_vit(xb)
                 s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
                 s_y = apply_masks(s_y, targets_indecies)
-                print(f"{s_y.shape} | {s_y.device} from s_y data_loader")
+                # print(f"{s_y.shape} | {s_y.device} from s_y data_loader")
 
             loss = F.smooth_l1_loss(s_y_pred, s_y)
-            print(f"{loss=}")
+            print(f"{step} | {loss=}")
+            if step == 20:
+                break
+            loss.backward()
+            optimizer.step()
             
-            break
+            
 
 if __name__ == "__main__":
     main()
