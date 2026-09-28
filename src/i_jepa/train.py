@@ -91,30 +91,32 @@ def main():
         for step, (xb, context_indecies, targets_indecies) in enumerate(data_loader):
             optimizer.zero_grad()
 
+            # data to device
             xb = xb.to(device, non_blocking=True)
             context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
             targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
-            
+
+            # context branch forward
             s_x = encoder_vit_context(xb, context_indecies)
-            # print(f"{s_x.shape} from s_x data_loader")
-
             s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
-            # print(f"{s_y_pred.shape} | {s_y_pred.device} from s_y_pred data_loader")
 
-            # Target branch
+            # target branch forward
             with torch.no_grad():
                 s_y = target_encoder_vit(xb)
                 s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
                 s_y = apply_masks(s_y, targets_indecies)
-                # print(f"{s_y.shape} | {s_y.device} from s_y data_loader")
 
+            # get loss
             loss = F.smooth_l1_loss(s_y_pred, s_y)
             print(f"{step} | {loss=}")
             if step == 1:
                 break
+
+            # update context branch models
             loss.backward()
             optimizer.step()
 
+            # EMA update target branch
             with torch.no_grad():
                 m = next(momentum_scheduler)
                 for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
