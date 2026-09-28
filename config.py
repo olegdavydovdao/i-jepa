@@ -47,6 +47,7 @@ class Config:
     # Optimization
     num_epochs: int = 1
     use_adamw_fused: bool = True
+    ema: tuple = (0.996, 1.0)
     
     ## cuda | GPU == A100 for future
     device: str = 'cuda'

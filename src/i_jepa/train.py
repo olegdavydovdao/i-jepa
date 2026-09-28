@@ -79,7 +79,11 @@ def main():
         {'params': encoder_params_1d, 'weight_decay': 0.0},
         {'params': predictor_params_1d, 'weight_decay': 0.0}
     ]
-    optimizer = torch.optim.AdamW(param_groups, fused=cfg.use_adamw_fused)
+    optimizer = torch.optim.AdamW(param_groups, fused=cfg.use_adamw_fused) # lr betas
+
+    i_per_ep = len(data_loader)
+    ema = cfg.ema
+    momentum_scheduler = (ema[0] + (ema[1]-ema[0])*i/(i_per_ep*cfg.num_epochs) for i in range(i_per_ep*cfg.num_epochs))
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
@@ -106,11 +110,16 @@ def main():
 
             loss = F.smooth_l1_loss(s_y_pred, s_y)
             print(f"{step} | {loss=}")
-            if step == 20:
+            if step == 1:
                 break
             loss.backward()
             optimizer.step()
-            
+
+            with torch.no_grad():
+                m = next(momentum_scheduler)
+                for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
+                    if p_c.requires_grad:
+                        p_t.mul_(m).add_(p_c, alpha=1.0-m)
             
 
 if __name__ == "__main__":
