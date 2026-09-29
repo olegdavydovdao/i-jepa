@@ -54,7 +54,7 @@ def main():
     device = 'cpu'
     if torch.cuda.is_available():
         device = cfg.device
-    # print(f"using device: {device}")
+    print(f"using device: {device}")
 
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
@@ -83,7 +83,8 @@ def main():
 
     i_per_ep = len(data_loader)
     ema = cfg.ema
-    momentum_scheduler = (ema[0] + (ema[1]-ema[0])*i/(i_per_ep*cfg.num_epochs) for i in range(i_per_ep*cfg.num_epochs))
+    momentum_scheduler = (ema[0] + (ema[1]-ema[0])*i/(i_per_ep*cfg.num_epochs)
+                          for i in range(i_per_ep*cfg.num_epochs))
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
@@ -96,18 +97,19 @@ def main():
             context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
             targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
 
-            # context branch forward
-            s_x = encoder_vit_context(xb, context_indecies)
-            s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
+            with torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                # context branch forward
+                s_x = encoder_vit_context(xb, context_indecies)
+                s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
 
-            # target branch forward
-            with torch.no_grad():
-                s_y = target_encoder_vit(xb)
-                s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
-                s_y = apply_masks(s_y, targets_indecies)
+                # target branch forward
+                with torch.no_grad():
+                    s_y = target_encoder_vit(xb)
+                    s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
+                    s_y = apply_masks(s_y, targets_indecies)
 
-            # get loss
-            loss = F.smooth_l1_loss(s_y_pred, s_y)
+                # get loss
+                loss = F.smooth_l1_loss(s_y_pred, s_y)
             print(f"{step} | {loss=}")
             if step == 1:
                 break

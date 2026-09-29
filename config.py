@@ -53,3 +53,4 @@ class Config:
     device: str = 'cuda'
     world_size: int = 1 # to enable DDP == 2
     rank: int = 0
+    use_bfloat16: bool = False
