@@ -45,10 +45,15 @@ class Config:
     pred_depth: int = 6
 
     # Optimization
-    num_epochs: int = 1
-    use_adamw_fused: bool = True
     ema: tuple = (0.996, 1.0)
-    
+    num_epochs: int = 1
+    start_lr: float = 2e-4
+    final_lr: float = 1e-6
+    start_wd: float = 0.04 # weight decay
+    final_wd: float = 0.4
+    warmup: int = 50 # steps
+
+    use_adamw_fused: bool = True
     ## cuda | GPU == A100 for future
     device: str = 'cuda'
     world_size: int = 1 # to enable DDP == 2
