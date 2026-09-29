@@ -8,6 +8,7 @@ from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
 from src.i_jepa.models import EncoderViT, PredictorViT, apply_masks
+from src.i_jepa.shedulers import LRScheduler
 import copy
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -86,6 +87,8 @@ def main():
     momentum_scheduler = (ema[0] + (ema[1]-ema[0])*i/(i_per_ep*cfg.num_epochs)
                           for i in range(i_per_ep*cfg.num_epochs))
 
+    get_lr = LRScheduler(cfg, i_per_ep)
+
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
 
@@ -110,12 +113,15 @@ def main():
 
                 # get loss
                 loss = F.smooth_l1_loss(s_y_pred, s_y)
-            print(f"{step} | {loss=}")
-            if step == 1:
+            # print(f"{step} | {loss=}")
+            if step == 50:
                 break
 
             # update context branch models
             loss.backward()
+            lr = get_lr.step()
+            for group in optimizer.param_groups:
+                group['lr'] = lr
             optimizer.step()
 
             # EMA update target branch

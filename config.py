@@ -48,10 +48,11 @@ class Config:
     ema: tuple = (0.996, 1.0)
     num_epochs: int = 1
     start_lr: float = 2e-4
+    max_lr: float = 1e-3
     final_lr: float = 1e-6
-    start_wd: float = 0.04 # weight decay
+    start_wd: float = 0.04 # weight_decay
     final_wd: float = 0.4
-    warmup: int = 50 # steps
+    warmup_over_epochs: float = 40/300
 
     use_adamw_fused: bool = True
     ## cuda | GPU == A100 for future
