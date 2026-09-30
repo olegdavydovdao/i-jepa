@@ -8,7 +8,7 @@ from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
 from src.i_jepa.models import EncoderViT, PredictorViT, apply_masks
-from src.i_jepa.shedulers import LRScheduler
+from src.i_jepa.shedulers import LRScheduler, WDScheduler
 import copy
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -88,6 +88,7 @@ def main():
                           for i in range(i_per_ep*cfg.num_epochs))
 
     get_lr = LRScheduler(cfg, i_per_ep)
+    get_wd = WDScheduler(cfg, i_per_ep)
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
@@ -120,8 +121,11 @@ def main():
             # update context branch models
             loss.backward()
             lr = get_lr.step()
+            wd = get_wd.step()
             for group in optimizer.param_groups:
                 group['lr'] = lr
+                if group['weight_decay'] != 0.0: # default = 0.01
+                    group['weight_decay'] = wd
             optimizer.step()
 
             # EMA update target branch
