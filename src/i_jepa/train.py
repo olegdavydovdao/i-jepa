@@ -10,6 +10,10 @@ from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Ma
 from src.i_jepa.models import EncoderViT, PredictorViT, apply_masks
 from src.i_jepa.shedulers import LRScheduler, WDScheduler
 import copy
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
+from torch.distributed import init_process_group, destroy_process_group
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -89,6 +93,12 @@ def main():
 
     get_lr = LRScheduler(cfg, i_per_ep)
     get_wd = WDScheduler(cfg, i_per_ep)
+
+    # torch.compile before DDP
+    # DDP
+    # set_float32_matmul_precision
+    # norm
+    # time
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
