@@ -56,7 +56,6 @@ class Config:
 
     use_adamw_fused: bool = True
     ## cuda | GPU == A100 for future
-    device: str = 'cuda'
     world_size: int = 1 # to enable DDP == 2
     rank: int = 0
     use_bfloat16: bool = False

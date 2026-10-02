@@ -1,9 +1,12 @@
+# use_libuv = False | because i work on windows for now in .venv pytorch library
+# discard it for linux run in future
+
+import os
+import sys; sys.path.append(".")
 import torch
 from torch.nn import functional as F
 from datasets import load_from_disk
 from torch.utils.data import DataLoader
-import os
-import sys; sys.path.append(".")
 from config import Config
 import logging
 from src.i_jepa.data_prepare import install_data_folder_tiny, Make_transform, Mask_collator
@@ -13,6 +16,7 @@ import copy
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
+import torch.multiprocessing as mp
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -20,6 +24,36 @@ logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
 def main():
+    use_ddp = int(os.environ.get('RANK', -1)) != -1
+    if use_ddp:
+        assert torch.cuda.is_available(), 'need cuda to DDP'
+        rank = int(os.environ['RANK'])
+        local_rank = int(os.environ['LOCAL_RANK'])
+        world_size = int(os.environ['WORLD_SIZE'])
+        device = torch.device(f'cuda:{local_rank}')
+        torch.cuda.set_device(device)
+    else:
+        rank = 0
+        local_rank = 0
+        world_size = 1
+        if torch.cuda.is_available():
+            device = torch.device(f'cuda:{local_rank}')
+        else: device = torch.device('cpu')
+    master_process = rank == 0
+    
+
+    # to set num_workers creation in DataLoader, not effect on torchrun processes
+    try:
+        mp.set_start_method('spawn')
+    except Exception:
+        pass
+
+    if use_ddp:
+        print('> start init process group')
+        init_process_group(backend='nccl' if os.name != 'nt' else 'gloo')
+        print()
+    if master_process:
+        print(f"{use_ddp=}")
     torch.manual_seed(0)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(0)
@@ -56,11 +90,6 @@ def main():
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
-    device = 'cpu'
-    if torch.cuda.is_available():
-        device = cfg.device
-    print(f"using device: {device}")
-
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
     encoder_vit_context.to(device)
