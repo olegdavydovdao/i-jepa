@@ -1,6 +1,3 @@
-# use_libuv = False | because i work on windows for now in .venv pytorch library
-# discard it for linux run in future
-
 import os
 import sys; sys.path.append(".")
 import torch
@@ -18,7 +15,6 @@ import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
 
-
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
@@ -30,30 +26,26 @@ def main():
         rank = int(os.environ['RANK'])
         local_rank = int(os.environ['LOCAL_RANK'])
         world_size = int(os.environ['WORLD_SIZE'])
-        device = torch.device(f'cuda:{local_rank}')
+        device = f'cuda:{local_rank}'
         torch.cuda.set_device(device)
+        init_process_group(backend='nccl')
     else:
         rank = 0
         local_rank = 0
         world_size = 1
         if torch.cuda.is_available():
-            device = torch.device(f'cuda:{local_rank}')
-        else: device = torch.device('cpu')
+            device = f'cuda:{local_rank}'
+        else: device = 'cpu'
     master_process = rank == 0
-    
+    if master_process:
+        print(f"{use_ddp=}")
 
     # to set num_workers creation in DataLoader, not effect on torchrun processes
     try:
         mp.set_start_method('spawn')
     except Exception:
         pass
-
-    if use_ddp:
-        print('> start init process group')
-        init_process_group(backend='nccl' if os.name != 'nt' else 'gloo')
-        print()
-    if master_process:
-        print(f"{use_ddp=}")
+    
     torch.manual_seed(0)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(0)
@@ -95,6 +87,10 @@ def main():
     encoder_vit_context.to(device)
     predictor_vit.to(device)
     target_encoder_vit = copy.deepcopy(encoder_vit_context) # already on cuda
+    if use_ddp:
+        encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
+        predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
+        target_encoder_vit = DDP(target_encoder_vit, device_ids=[local_rank])
     for p in target_encoder_vit.parameters():
         p.requires_grad = False
 
@@ -153,7 +149,7 @@ def main():
 
                 # get loss
                 loss = F.smooth_l1_loss(s_y_pred, s_y)
-            # print(f"{step} | {loss=}")
+            print(f"{step} | {loss=}")
             if step == 50:
                 break
 
