@@ -90,6 +90,15 @@ def main():
     target_encoder_vit = copy.deepcopy(encoder_vit_context) # already on cuda
     for p in target_encoder_vit.parameters():
         p.requires_grad = False
+
+    # compile forward function of 3 separate models.
+    if master_process:
+        print(f"{cfg.use_compile=}")
+    if cfg.use_compile:
+        encoder_vit_context = torch.compile(encoder_vit_context)
+        predictor_vit = torch.compile(predictor_vit)
+        target_encoder_vit = torch.compile(target_encoder_vit)
+
     if use_ddp:
         encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
         predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
@@ -119,12 +128,6 @@ def main():
 
     get_lr = LRScheduler(cfg, i_per_ep)
     get_wd = WDScheduler(cfg, i_per_ep)
-
-    # torch.compile before DDP
-    # DDP
-    # set_float32_matmul_precision
-    # norm
-    # time
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
@@ -168,6 +171,7 @@ def main():
             optimizer.step()
 
             # EMA update target branch
+            # do i need raw model from compile and ddp?
             with torch.no_grad():
                 m = next(momentum_scheduler)
                 for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
