@@ -23,12 +23,12 @@ def main():
     use_ddp = int(os.environ.get('RANK', -1)) != -1
     if use_ddp:
         assert torch.cuda.is_available(), 'need cuda to DDP'
+        init_process_group(backend='nccl')
         rank = int(os.environ['RANK'])
         local_rank = int(os.environ['LOCAL_RANK'])
         world_size = int(os.environ['WORLD_SIZE'])
         device = f'cuda:{local_rank}'
         torch.cuda.set_device(device)
-        init_process_group(backend='nccl')
     else:
         rank = 0
         local_rank = 0
@@ -36,7 +36,7 @@ def main():
         if torch.cuda.is_available():
             device = f'cuda:{local_rank}'
         else: device = 'cpu'
-    master_process = rank == 0
+    master_process = rank==0
     if master_process:
         print(f"{use_ddp=}")
 
@@ -82,17 +82,18 @@ def main():
         persistent_workers=False,
     )
 # --------------------------------------------------------------------------------
+    torch.set_float32_matmul_precision('high') # TF32 if available
     encoder_vit_context = EncoderViT(cfg)
     predictor_vit = PredictorViT(cfg)
     encoder_vit_context.to(device)
     predictor_vit.to(device)
     target_encoder_vit = copy.deepcopy(encoder_vit_context) # already on cuda
+    for p in target_encoder_vit.parameters():
+        p.requires_grad = False
     if use_ddp:
         encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
         predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
         target_encoder_vit = DDP(target_encoder_vit, device_ids=[local_rank])
-    for p in target_encoder_vit.parameters():
-        p.requires_grad = False
 
     def params_generator(model):
         params_2d = (p for n,p in model.named_parameters() if p.requires_grad and p.dim() >= 2)
@@ -149,12 +150,15 @@ def main():
 
                 # get loss
                 loss = F.smooth_l1_loss(s_y_pred, s_y)
-            print(f"{step} | {loss=}")
+            loss.backward()
+            if use_ddp:
+                dist.all_reduce(loss.detach(), op=dist.ReduceOp.AVG)
+            if master_process:
+                print(f"{step} | {loss=}")
             if step == 50:
                 break
 
-            # update context branch models
-            loss.backward()
+            # optimize step
             lr = get_lr.step()
             wd = get_wd.step()
             for group in optimizer.param_groups:
@@ -169,7 +173,9 @@ def main():
                 for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
                     if p_c.requires_grad:
                         p_t.mul_(m).add_(p_c, alpha=1.0-m)
-            
+    
+    if use_ddp:
+        destroy_process_group()
 
 if __name__ == "__main__":
     main()
