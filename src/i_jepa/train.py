@@ -54,9 +54,11 @@ def main():
 
     # grad accum set up
     assert cfg.total_batch_size % (cfg.batch_size*world_size) == 0, 'output of "%" is not 0'
-    grad_accum_steps = cfg.total_batch_size // (cfg.batch_size*world_size)
+    batch_size_per_process = cfg.total_batch_size // world_size
+    grad_accum_steps = batch_size_per_process // cfg.batch_size
     if master_process:
         print(f"{cfg.total_batch_size=}")
+        print(f"{batch_size_per_process=}")
         print(f"{grad_accum_steps=}")
 
     # ImageNet_tiny data installation at 1st run
@@ -82,7 +84,7 @@ def main():
 
     data_loader = DataLoader(
         train_data,
-        batch_size=cfg.batch_size,
+        batch_size=batch_size_per_process,
         collate_fn=mask_collator,
         num_workers=cfg.num_workers,
         sampler = dist_sampler,
@@ -143,32 +145,44 @@ def main():
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
 
-        for step, (xb, context_indecies, targets_indecies) in enumerate(data_loader):
+        for step, (xb_proc, context_indecies_proc, targets_indecies_proc) in enumerate(data_loader):
             optimizer.zero_grad()
+            loss_accum = 0.0
+            for k in range(grad_accum_steps):
+                # get new next batch_size in batch_size_per_process
+                xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
+                context_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in context_indecies_proc]
+                targets_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in targets_indecies_proc]
 
-            # data to device
-            xb = xb.to(device, non_blocking=True)
-            context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
-            targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
+                # data to device
+                xb = xb.to(device, non_blocking=True)
+                context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
+                targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
 
-            with torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
-                # context branch forward
-                s_x = encoder_vit_context(xb, context_indecies)
-                s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
+                with torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                    # context branch forward
+                    s_x = encoder_vit_context(xb, context_indecies)
+                    s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
 
-                # target branch forward
-                with torch.no_grad():
-                    s_y = target_encoder_vit(xb)
-                    s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
-                    s_y = apply_masks(s_y, targets_indecies)
+                    # target branch forward
+                    with torch.no_grad():
+                        s_y = target_encoder_vit(xb)
+                        s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
+                        s_y = apply_masks(s_y, targets_indecies)
 
-                # get loss
-                loss = F.smooth_l1_loss(s_y_pred, s_y)
-            loss.backward()
+                    # get loss
+                    loss = F.smooth_l1_loss(s_y_pred, s_y)
+                loss = loss / grad_accum_steps
+                loss_accum += loss.detach()
+                if use_ddp:
+                    encoder_vit_context.require_backward_grad_sync = k==grad_accum_steps-1
+                    predictor_vit.require_backward_grad_sync = k==grad_accum_steps-1
+                    target_encoder_vit.require_backward_grad_sync = k==grad_accum_steps-1
+                loss.backward()
             if use_ddp:
-                dist.all_reduce(loss.detach(), op=dist.ReduceOp.AVG)
+                dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
             if master_process:
-                print(f"{step} | {loss=}")
+                print(f"{step} | {loss_accum=}")
             if step == 50:
                 break
 
