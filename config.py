@@ -60,3 +60,4 @@ class Config:
     rank: int = 0
     use_bfloat16: bool = False
     use_compile: bool = False
+    total_batch_size: int = 4

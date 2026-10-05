@@ -20,6 +20,13 @@ logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
 def main():
+    # to set num_workers creation in DataLoader
+    try:
+        mp.set_start_method('spawn')
+    except Exception:
+        pass
+
+    # run code via torchrun and non-torchrun.
     use_ddp = int(os.environ.get('RANK', -1)) != -1
     if use_ddp:
         assert torch.cuda.is_available(), 'need cuda to DDP'
@@ -39,17 +46,19 @@ def main():
     master_process = rank==0
     if master_process:
         print(f"{use_ddp=}")
-
-    # to set num_workers creation in DataLoader, not effect on torchrun processes
-    try:
-        mp.set_start_method('spawn')
-    except Exception:
-        pass
     
     torch.manual_seed(0)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(0)
     cfg = Config()
+
+    # grad accum set up
+    assert cfg.total_batch_size % (cfg.batch_size*world_size) == 0, 'output of "%" is not 0'
+    grad_accum_steps = cfg.total_batch_size // (cfg.batch_size*world_size)
+    if master_process:
+        print(f"{cfg.total_batch_size=}")
+        print(f"{grad_accum_steps=}")
+
     # ImageNet_tiny data installation at 1st run
     if os.path.isdir(cfg.tiny_data_folder_name):
         pass
@@ -103,6 +112,8 @@ def main():
         encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
         predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
         target_encoder_vit = DDP(target_encoder_vit, device_ids=[local_rank])
+    raw_context_encoder = encoder_vit_context.module if use_ddp else encoder_vit_context
+    raw_target_encoder = target_encoder_vit.module if use_ddp else target_encoder_vit
 
     def params_generator(model):
         params_2d = (p for n,p in model.named_parameters() if p.requires_grad and p.dim() >= 2)
