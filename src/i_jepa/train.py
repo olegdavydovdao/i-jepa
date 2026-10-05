@@ -46,6 +46,7 @@ def main():
     master_process = rank==0
     if master_process:
         print(f"{use_ddp=}")
+    device_type = "cuda" if device.startswith("cuda") else "cpu"
     
     torch.manual_seed(0)
     if torch.cuda.is_available():
@@ -159,7 +160,11 @@ def main():
                 context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
                 targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
 
-                with torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                if use_ddp:
+                    encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
+                    predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
+                    target_encoder_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
+                with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                     # context branch forward
                     s_x = encoder_vit_context(xb, context_indecies)
                     s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
@@ -174,10 +179,6 @@ def main():
                     loss = F.smooth_l1_loss(s_y_pred, s_y)
                 loss = loss / grad_accum_steps
                 loss_accum += loss.detach()
-                if use_ddp:
-                    encoder_vit_context.require_backward_grad_sync = k==grad_accum_steps-1
-                    predictor_vit.require_backward_grad_sync = k==grad_accum_steps-1
-                    target_encoder_vit.require_backward_grad_sync = k==grad_accum_steps-1
                 loss.backward()
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
