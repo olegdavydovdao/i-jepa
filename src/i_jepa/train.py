@@ -14,6 +14,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
+import time
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -147,6 +148,7 @@ def main():
         dist_sampler.set_epoch(epoch)
 
         for step, (xb_proc, context_indecies_proc, targets_indecies_proc) in enumerate(data_loader):
+            t0 = time.time()
             optimizer.zero_grad()
             loss_accum = 0.0
             for k in range(grad_accum_steps):
@@ -164,6 +166,7 @@ def main():
                     encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
                     predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
                     target_encoder_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
+
                 with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                     # context branch forward
                     s_x = encoder_vit_context(xb, context_indecies)
@@ -182,10 +185,6 @@ def main():
                 loss.backward()
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
-            if master_process:
-                print(f"{step} | {loss_accum=}")
-            if step == 50:
-                break
 
             # optimize step
             lr = get_lr.step()
@@ -203,6 +202,16 @@ def main():
                 for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
                     if p_c.requires_grad:
                         p_t.mul_(m).add_(p_c, alpha=1.0-m)
+
+            torch.cuda.synchronize()
+            t1 = time.time()
+            dt = t1 - t0
+            
+            if master_process:
+                print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s")
+            if step == 50:
+                break
+
     
     if use_ddp:
         destroy_process_group()
