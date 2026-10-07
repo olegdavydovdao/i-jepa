@@ -115,9 +115,7 @@ def main():
     if use_ddp:
         encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
         predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
-        # target_encoder_vit = DDP(target_encoder_vit, device_ids=[local_rank])
     raw_context_encoder = encoder_vit_context.module if use_ddp else encoder_vit_context
-    # raw_target_encoder = target_encoder_vit.module if use_ddp else target_encoder_vit
 
     def params_generator(model):
         params_2d = (p for n,p in model.named_parameters() if p.requires_grad and p.dim() >= 2)
@@ -165,7 +163,6 @@ def main():
                 if use_ddp:
                     encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
                     predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
-                    target_encoder_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
 
                 with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                     # context branch forward
