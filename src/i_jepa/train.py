@@ -196,7 +196,7 @@ def main():
             # do i need raw model from compile and ddp?
             with torch.no_grad():
                 m = next(momentum_scheduler)
-                for p_c, p_t in zip(encoder_vit_context.parameters(), target_encoder_vit.parameters()):
+                for p_c, p_t in zip(raw_context_encoder.parameters(), target_encoder_vit.parameters()):
                     if p_c.requires_grad:
                         p_t.mul_(m).add_(p_c, alpha=1.0-m)
 
