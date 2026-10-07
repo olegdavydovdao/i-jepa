@@ -16,7 +16,7 @@ from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
 import time
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
