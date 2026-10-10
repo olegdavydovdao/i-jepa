@@ -15,3 +15,5 @@ play.py
 
 # Tiny data installed
 imagenet1k_tiny/
+
+target_encoder_final.pt

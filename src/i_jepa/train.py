@@ -213,12 +213,15 @@ def main():
             batch_per_sec = cfg.total_batch_size / dt
             if master_process:
                 print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
-            if step == 50:
+            if step == 10:
                 break
-
     
     if use_ddp:
         destroy_process_group()
+
+    if master_process:
+        target_enc_uncompiled = target_encoder_vit._orig_mod if use_compile else target_encoder_vit
+        torch.save(target_enc_uncompiled.state_dict(), "target_encoder_final.pt")
 
 if __name__ == "__main__":
     main()
