@@ -219,9 +219,28 @@ def main():
     if use_ddp:
         destroy_process_group()
 
-    if master_process:
-        target_enc_uncompiled = target_encoder_vit._orig_mod if use_compile else target_encoder_vit
-        torch.save(target_enc_uncompiled.state_dict(), "target_encoder_final.pt")
+    # save end of final epoch
+    def save_checkpoint(epoch):
+        save_dict = {
+            'context_encoder': encoder_vit_context.state_dict(),
+            'predictor': predictor_vit.state_dict(),
+            'target_encoder': target_encoder_vit.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'epoch': epoch,
+            'loss_accum': loss_accum,
+            'batch_size_per_process': batch_size_per_process,
+            'world_size': world_size,
+            'lr': lr,
+        }
+        if master_process:
+            torch.save(save_dict, f"checkpoint_ep{epoch}.pt")
+    save_checkpoint(epoch)
+
+    # do i need it?
+    # if master_process:
+    #     target_enc_uncompiled = target_encoder_vit._orig_mod if use_compile else target_encoder_vit
+    #     torch.save(target_enc_uncompiled.state_dict(), "target_encoder_final.pt")
+        
 
 if __name__ == "__main__":
     main()
