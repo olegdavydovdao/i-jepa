@@ -149,6 +149,21 @@ def main():
     get_lr = LRScheduler(cfg, i_per_ep)
     get_wd = WDScheduler(cfg, i_per_ep)
 
+    def save_checkpoint(epoch):
+        save_dict = {
+            'context_encoder': encoder_vit_context.state_dict(),
+            'predictor': predictor_vit.state_dict(),
+            'target_encoder': target_encoder_vit.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'epoch': epoch,
+            'loss_accum': loss_accum,
+            'batch_size_per_process': batch_size_per_process,
+            'world_size': world_size,
+            'lr': lr,
+        }
+        if master_process:
+            torch.save(save_dict, f"checkpoint_ep{epoch}.pt")
+
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
 
@@ -220,20 +235,6 @@ def main():
         destroy_process_group()
 
     # save end of final epoch
-    def save_checkpoint(epoch):
-        save_dict = {
-            'context_encoder': encoder_vit_context.state_dict(),
-            'predictor': predictor_vit.state_dict(),
-            'target_encoder': target_encoder_vit.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'epoch': epoch,
-            'loss_accum': loss_accum,
-            'batch_size_per_process': batch_size_per_process,
-            'world_size': world_size,
-            'lr': lr,
-        }
-        if master_process:
-            torch.save(save_dict, f"checkpoint_ep{epoch}.pt")
     save_checkpoint(epoch)
 
     # do i need it?
