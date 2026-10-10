@@ -79,8 +79,8 @@ def main():
     # for DDP training | it has own shuffle=True
     dist_sampler = torch.utils.data.distributed.DistributedSampler(
         dataset=train_data,
-        num_replicas=cfg.world_size,
-        rank=cfg.rank,
+        num_replicas=world_size,
+        rank=rank,
         shuffle = True,
     )
 
@@ -103,16 +103,21 @@ def main():
     target_encoder_vit = copy.deepcopy(encoder_vit_context) # already on cuda
     for p in target_encoder_vit.parameters():
         p.requires_grad = False
+    if use_ddp:
+        with torch.no_grad():
+            for param in target_encoder_vit.parameters():
+                dist.broadcast(param, src=0)
 
     # compile forward function of 3 separate models.
     if master_process:
         print(f"{cfg.use_compile=}")
     if cfg.use_compile:
-        encoder_vit_context = torch.compile(encoder_vit_context)
-        predictor_vit = torch.compile(predictor_vit)
+        encoder_vit_context = torch.compile(encoder_vit_context, dynamic=True)
+        predictor_vit = torch.compile(predictor_vit, dynamic=True)
         target_encoder_vit = torch.compile(target_encoder_vit)
 
     if use_ddp:
+        # within DDP init dist.broadcast are used.
         encoder_vit_context = DDP(encoder_vit_context, device_ids=[local_rank])
         predictor_vit = DDP(predictor_vit, device_ids=[local_rank])
     raw_context_encoder = encoder_vit_context.module if use_ddp else encoder_vit_context

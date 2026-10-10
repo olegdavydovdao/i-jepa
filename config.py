@@ -53,11 +53,9 @@ class Config:
     start_wd: float = 0.04 # weight_decay
     final_wd: float = 0.4
     warmup_over_epochs: float = 40/300
-
     use_adamw_fused: bool = True
+    
     ## cuda | GPU == A100 for future
-    world_size: int = 1 # to enable DDP == 2
-    rank: int = 0
     use_bfloat16: bool = False
     use_compile: bool = True
     total_batch_size: int = 4
