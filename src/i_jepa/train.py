@@ -114,8 +114,8 @@ def main():
     if master_process:
         print(f"{use_compile=}")
     if use_compile:
-        encoder_vit_context = torch.compile(encoder_vit_context, dynamic=True)
-        predictor_vit = torch.compile(predictor_vit, dynamic=True)
+        encoder_vit_context = torch.compile(encoder_vit_context)
+        predictor_vit = torch.compile(predictor_vit)
         target_encoder_vit = torch.compile(target_encoder_vit)
 
     if use_ddp:
