@@ -108,10 +108,12 @@ def main():
             for param in target_encoder_vit.parameters():
                 dist.broadcast(param, src=0)
 
+    major, minor = torch.cuda.get_device_capability()
+    use_compile = cfg.use_compile and major >= 7
     # compile forward function of 3 separate models.
     if master_process:
-        print(f"{cfg.use_compile=}")
-    if cfg.use_compile:
+        print(f"{use_compile=}")
+    if use_compile:
         encoder_vit_context = torch.compile(encoder_vit_context, dynamic=True)
         predictor_vit = torch.compile(predictor_vit, dynamic=True)
         target_encoder_vit = torch.compile(target_encoder_vit)
