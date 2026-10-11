@@ -5,7 +5,9 @@ import torch.nn as nn
 from src.i_jepa.models import EncoderViT
 from pathlib import Path
 
-checkpoint_dir = Path(".")
-
-saved_dict = torch.load('checkpoint_ep0.pt')
-print(saved_dict['target_encoder'])
+path = os.path.join(".", "checkpoints")
+checkpoint_dir = Path(path)
+checkpoint_files = list(checkpoint_dir.glob("checkpoint_ep*.pt"))
+final_file = checkpoint_files[-1]
+saved_dict = torch.load(final_file)
+target_encoder_params = saved_dict['target_encoder']

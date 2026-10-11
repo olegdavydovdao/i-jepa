@@ -163,7 +163,7 @@ def main():
         }
         if master_process:
             file = f"checkpoint_ep{epoch}.pt"
-            file_dir = "logs"
+            file_dir = "checkpoints"
             os.makedirs(file_dir, exist_ok=True)
             file_path = os.path.join(file_dir, file)
             torch.save(save_dict, file_path)
