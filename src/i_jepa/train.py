@@ -234,12 +234,12 @@ def main():
                 print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
             if step == 10:
                 break
-    
-    if use_ddp:
-        destroy_process_group()
 
     # save end of final epoch
-    save_checkpoint(epoch)        
+    save_checkpoint(epoch) 
+
+    if use_ddp:
+        destroy_process_group()        
 
 if __name__ == "__main__":
     main()
