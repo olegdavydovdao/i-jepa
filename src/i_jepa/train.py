@@ -1,6 +1,7 @@
 import os
 import sys; sys.path.append(".")
 import torch
+import torch.nn as nn
 from torch.nn import functional as F
 from datasets import load_from_disk
 from torch.utils.data import DataLoader
@@ -236,13 +237,24 @@ def main():
                 break
 
     # Train linear probe
-    print("> Train classifier")
+    print("> Train classifier <")
+    probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
+    if use_compile:
+        probe = torch.compile(probe)
+    if use_ddp:
+        probe = DDP(probe, device_ids=[local_rank])
+    probe_params_2d, probe_params_1d = params_generator(probe)
+    probe_param_groups = [
+        {'params': probe_params_2d, 'weight_decay': 0.0005},
+        {'params': probe_params_1d, 'weight_decay': 0.0},
+    ]
+    optimizer_eval = torch.optim.AdamW(probe_param_groups, fused=cfg.use_adamw_fused)
     mask_collator.finetune = True
     for epoch_eval in range(cfg.eval_num_epoch):
         dist_sampler.set_epoch(epoch_eval)
         for step, (xb_proc, yb_proc) in enumerate(data_loader):
-            if step == 0:
-                print(yb_proc)
+            optimizer_eval.zero_grad()
+            loss_eval_accum = 0.0
 
     # save end of final epoch
     # save_checkpoint(epoch)
