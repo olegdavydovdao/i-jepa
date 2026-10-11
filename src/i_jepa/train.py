@@ -235,10 +235,7 @@ def main():
             if step == 10:
                 break
 
-    # save end of final epoch
-    save_checkpoint(epoch) 
-
-    # Evaluation with linear probe
+    # Train linear probe
     print("> Train classifier")
     mask_collator.finetune = True
     for epoch_eval in range(cfg.eval_num_epoch):
@@ -246,6 +243,9 @@ def main():
         for step, (xb_proc, yb_proc) in enumerate(data_loader):
             if step == 0:
                 print(yb_proc)
+
+    # save end of final epoch
+    # save_checkpoint(epoch)
 
     if use_ddp:
         destroy_process_group()        
