@@ -118,7 +118,9 @@ class Mask_collator():
         B = len(list_of_i1l1_dicts)
         xbyb_dict = torch.utils.data.default_collate(list_of_i1l1_dicts)
         xb = xbyb_dict["image"]
-
+        if self.finetune:
+            yb = xbyb_dict["label"]
+            return xb, yb
         # seed to mask shape reproducibility
         seed = self.step() # seed 0 at the start
         g = torch.Generator().manual_seed(seed)
@@ -159,7 +161,4 @@ class Mask_collator():
         collated_c_idxs = torch.utils.data.default_collate(collated_c_idxs)
 
         # return list of elements with respect to stage(pretrain SSL or finetune)
-        if self.finetune:
-            yb = xbyb_dict["label"]
-            return xb, yb
         return xb, collated_c_idxs, collated_t_idxs

@@ -238,6 +238,15 @@ def main():
     # save end of final epoch
     save_checkpoint(epoch) 
 
+    # Evaluation with linear probe
+    print("> Train classifier")
+    mask_collator.finetune = True
+    for epoch_eval in range(cfg.eval_num_epoch):
+        dist_sampler.set_epoch(epoch)
+        for step, (xb_proc, yb_proc) in enumerate(data_loader):
+            if step == 0:
+                print(yb_proc)
+
     if use_ddp:
         destroy_process_group()        
 

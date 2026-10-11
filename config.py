@@ -59,3 +59,6 @@ class Config:
     use_bfloat16: bool = False
     use_compile: bool = True
     total_batch_size: int = 4
+
+    # Eval
+    eval_num_epoch: int = 1
