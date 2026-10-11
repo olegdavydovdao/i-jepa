@@ -239,6 +239,7 @@ def main():
     # Train linear probe
     print("> Train classifier <")
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
+    probe.to(device)
     if use_compile:
         probe = torch.compile(probe)
     if use_ddp:
@@ -250,11 +251,33 @@ def main():
     ]
     optimizer_eval = torch.optim.AdamW(probe_param_groups, fused=cfg.use_adamw_fused)
     mask_collator.finetune = True
+    lr_eval = cfg.lr_eval
     for epoch_eval in range(cfg.eval_num_epoch):
         dist_sampler.set_epoch(epoch_eval)
+        if epoch_eval % 15 == 0 and epoch_eval != 0:
+            lr_eval /= 10
         for step, (xb_proc, yb_proc) in enumerate(data_loader):
             optimizer_eval.zero_grad()
             loss_eval_accum = 0.0
+            for k in range(grad_accum_steps):
+                xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
+                yb = yb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
+                xb = xb.to(device, non_blocking=True)
+                yb = yb.to(device, non_blocking=True)
+
+                if use_ddp:
+                    probe.require_backward_grad_sync = (k==grad_accum_steps-1)
+
+                with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                    with torch.no_grad():
+                        s_y = target_encoder_vit(xb)
+                        s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
+                    logits = probe(s_y)
+                    
+                    # loss = F.cross_entropy()
+                    print(logits.shape)
+            if step == 0:
+                break
 
     # save end of final epoch
     # save_checkpoint(epoch)
