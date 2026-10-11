@@ -162,7 +162,11 @@ def main():
             'lr': lr,
         }
         if master_process:
-            torch.save(save_dict, f"checkpoint_ep{epoch}.pt")
+            file = f"checkpoint_ep{epoch}.pt"
+            file_dir = "logs"
+            os.makedirs(file_dir, exist_ok=True)
+            file_path = os.path.join(file_dir, file)
+            torch.save(save_dict, file_path)
 
     for epoch in range(cfg.num_epochs):
         dist_sampler.set_epoch(epoch)
@@ -235,13 +239,7 @@ def main():
         destroy_process_group()
 
     # save end of final epoch
-    save_checkpoint(epoch)
-
-    # do i need it?
-    # if master_process:
-    #     target_enc_uncompiled = target_encoder_vit._orig_mod if use_compile else target_encoder_vit
-    #     torch.save(target_enc_uncompiled.state_dict(), "target_encoder_final.pt")
-        
+    save_checkpoint(epoch)        
 
 if __name__ == "__main__":
     main()
