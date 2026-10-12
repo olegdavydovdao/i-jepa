@@ -237,7 +237,7 @@ def main():
                 break
 
     # Train linear probe classifier after ijepa train
-    print("> Train classifier <")
+    print("> Train linear probe classifier <")
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
     probe.to(device)
     if use_compile:
@@ -268,9 +268,19 @@ def main():
                     with torch.no_grad():
                         s_y = target_encoder_vit(xb).mean(dim=1)
                     logits = probe(s_y)
-                    # loss = F.cross_entropy()
-                    print(logits.shape)
-            if step == 0:
+                    loss = F.cross_entropy(logits, yb)
+                loss = loss / grad_accum_steps
+                loss_eval_accum += loss.detach()
+                loss.backward()
+            if use_ddp:
+                dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
+
+            probe_optimizer.step()
+
+            if master_process:
+                print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
+
+            if step == 10:
                 break
 
     # save end of final epoch
