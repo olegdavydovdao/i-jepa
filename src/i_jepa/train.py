@@ -236,10 +236,8 @@ def main():
             if step == 10:
                 break
 
+    # LINEAR PROBE CLASSIFIER
 
-
-    # Train linear probe classifier after ijepa train
-    print("> Train linear probe classifier <")
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
     probe.to(device)
     if use_compile:
@@ -251,29 +249,7 @@ def main():
     mask_collator.finetune = True
     target_encoder_vit.eval()
 
-    # accuracy
-
-    val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
-    val_data = val_data.with_transform(make_transform)
-    val_dist_sampler = torch.utils.data.distributed.DistributedSampler(
-        dataset = val_data,
-        num_replicas = world_size,
-        rank=rank,
-        shuffle=True,
-    )
-
-    val_data_loader = DataLoader(
-        val_data,
-        batch_size=batch_size_per_process,
-        collate_fn=mask_collator,
-        num_workers=cfg.num_workers,
-        sampler=val_dist_sampler,
-        drop_last=cfg.drop_last_data,
-        pin_memory=cfg.pin_mem,
-        persistent_workers=False,
-    )
-
-    def run_probe(dist_sampler_any, data_loader_any):
+    def run_probe(dist_sampler_any, data_loader_any, use_probe_val):
         for epoch_eval in range(cfg.eval_num_epoch):
             dist_sampler_any.set_epoch(epoch_eval)
 
@@ -291,7 +267,7 @@ def main():
 
                     with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                         with torch.no_grad():
-                            s_y = target_encoder_vit(xb).mean(dim=1)
+                            s_y = target_encoder_vit(xb).mean(dim=1) # average pool
 
                         def logits_loss():
                             logits = probe(s_y)
@@ -324,16 +300,38 @@ def main():
                 if step == 10:
                     break
 
+    # TODO: accuracy
     # train linear probe
     use_probe_val = False
-    run_probe(dist_sampler, data_loader)
+    print("> Train linear probe classifier <")
+    run_probe(dist_sampler, data_loader, use_probe_val)
 
     # test linear probe on val_data without training
+    val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
+    val_data = val_data.with_transform(make_transform)
+    val_dist_sampler = torch.utils.data.distributed.DistributedSampler(
+        dataset = val_data,
+        num_replicas = world_size,
+        rank=rank,
+        shuffle=True,
+    )
+
+    val_data_loader = DataLoader(
+        val_data,
+        batch_size=batch_size_per_process,
+        collate_fn=mask_collator,
+        num_workers=cfg.num_workers,
+        sampler=val_dist_sampler,
+        drop_last=cfg.drop_last_data,
+        pin_memory=cfg.pin_mem,
+        persistent_workers=False,
+    )
+
     probe.eval()
     use_probe_val = True
     print("> Validation test of linear probe classifier <")
     with torch.no_grad():
-        run_probe(val_dist_sampler, val_data_loader)
+        run_probe(val_dist_sampler, val_data_loader, use_probe_val)
 
     # save end of final epoch
     # save_checkpoint(epoch)
