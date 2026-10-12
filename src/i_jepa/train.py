@@ -273,40 +273,43 @@ def main():
         persistent_workers=False,
     )
 
-    for epoch_eval in range(cfg.eval_num_epoch):
-        dist_sampler.set_epoch(epoch_eval)
+    def eval_probe(data_loader_any):
+        for epoch_eval in range(cfg.eval_num_epoch):
+            dist_sampler.set_epoch(epoch_eval)
 
-        for step, (xb_proc, yb_proc) in enumerate(data_loader):
-            probe_optimizer.zero_grad()
-            loss_eval_accum = 0.0
-            for k in range(grad_accum_steps):
-                xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
-                yb = yb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
-                xb = xb.to(device, non_blocking=True)
-                yb = yb.to(device, non_blocking=True)
+            for step, (xb_proc, yb_proc) in enumerate(data_loader_any):
+                probe_optimizer.zero_grad()
+                loss_eval_accum = 0.0
+                for k in range(grad_accum_steps):
+                    xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
+                    yb = yb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
+                    xb = xb.to(device, non_blocking=True)
+                    yb = yb.to(device, non_blocking=True)
 
+                    if use_ddp:
+                        probe.require_backward_grad_sync = (k==grad_accum_steps-1)
+
+                    with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                        with torch.no_grad():
+                            s_y = target_encoder_vit(xb).mean(dim=1)
+                        logits = probe(s_y)
+                        loss = F.cross_entropy(logits, yb)
+                    loss = loss / grad_accum_steps
+                    loss_eval_accum += loss.detach()
+                    loss.backward()
                 if use_ddp:
-                    probe.require_backward_grad_sync = (k==grad_accum_steps-1)
+                    dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
 
-                with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
-                    with torch.no_grad():
-                        s_y = target_encoder_vit(xb).mean(dim=1)
-                    logits = probe(s_y)
-                    loss = F.cross_entropy(logits, yb)
-                loss = loss / grad_accum_steps
-                loss_eval_accum += loss.detach()
-                loss.backward()
-            if use_ddp:
-                dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
+                probe_optimizer.step()
 
-            probe_optimizer.step()
+                if master_process:
+                    print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
 
-            if master_process:
-                print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
+                if step == 10:
+                    break
 
-            if step == 10:
-                break
-
+    eval_probe(data_loader)
+    eval_probe(val_data_loader)
     # save end of final epoch
     # save_checkpoint(epoch)
 
