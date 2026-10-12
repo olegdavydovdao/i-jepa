@@ -249,6 +249,30 @@ def main():
     mask_collator.finetune = True
     target_encoder_vit.eval()
 
+    # new function: eval(train/val data)
+    # dist_sampler_val
+    # data_loader_val
+    # accuracy
+
+    val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
+    val_data = val_data.with_transform(make_transform)
+    val_dist_sampler = torch.utils.data.distributed.DistributedSampler(
+        dataset = val_data,
+        num_replicas = world_size,
+        rank=rank,
+        shuffle=True,
+    )
+    val_data_loader = DataLoader(
+        val_data,
+        batch_size=batch_size_per_process,
+        collate_fn=mask_collator,
+        num_workers=cfg.num_workers,
+        sampler=val_dist_sampler,
+        drop_last=cfg.drop_last_data,
+        pin_memory=cfg.pin_mem,
+        persistent_workers=False,
+    )
+
     for epoch_eval in range(cfg.eval_num_epoch):
         dist_sampler.set_epoch(epoch_eval)
 
