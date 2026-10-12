@@ -62,5 +62,5 @@ class Config:
 
     # Eval
     eval_num_epoch: int = 1
-    num_classes: int = 1024 # instead 1000 due power of 2
+    num_classes: int = 1024 # instead of 1000 due power of 2
     lr_eval: float = 0.01
