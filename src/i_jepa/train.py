@@ -245,13 +245,15 @@ def main():
     if use_ddp:
         probe = DDP(probe, device_ids=[local_rank])
 
-    optimizer_eval = torch.optim.AdamW(probe.parameters(), lr=0.01, weight_decay=0.0, fused=cfg.use_adamw_fused)
-
+    probe_optimizer = torch.optim.AdamW(probe.parameters(), lr=cfg.lr_eval, weight_decay=cfg.wd_eval, fused=cfg.use_adamw_fused)
     mask_collator.finetune = True
+    target_encoder_vit.eval()
+
     for epoch_eval in range(cfg.eval_num_epoch):
         dist_sampler.set_epoch(epoch_eval)
+
         for step, (xb_proc, yb_proc) in enumerate(data_loader):
-            optimizer_eval.zero_grad()
+            probe_optimizer.zero_grad()
             loss_eval_accum = 0.0
             for k in range(grad_accum_steps):
                 xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
@@ -264,10 +266,8 @@ def main():
 
                 with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                     with torch.no_grad():
-                        s_y = target_encoder_vit(xb)
-                        s_y = F.layer_norm(s_y, (s_y.shape[-1],), eps=cfg.eps_layer_norm)
+                        s_y = target_encoder_vit(xb).mean(dim=1)
                     logits = probe(s_y)
-                    # average pool of logits
                     # loss = F.cross_entropy()
                     print(logits.shape)
             if step == 0:
