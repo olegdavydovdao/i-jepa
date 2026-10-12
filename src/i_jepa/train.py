@@ -236,6 +236,8 @@ def main():
             if step == 10:
                 break
 
+
+
     # Train linear probe classifier after ijepa train
     print("> Train linear probe classifier <")
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
@@ -273,9 +275,9 @@ def main():
         persistent_workers=False,
     )
 
-    def eval_probe(data_loader_any):
+    def eval_probe(dist_sampler_any, data_loader_any):
         for epoch_eval in range(cfg.eval_num_epoch):
-            dist_sampler.set_epoch(epoch_eval)
+            dist_sampler_any.set_epoch(epoch_eval)
 
             for step, (xb_proc, yb_proc) in enumerate(data_loader_any):
                 probe_optimizer.zero_grad()
@@ -292,11 +294,23 @@ def main():
                     with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                         with torch.no_grad():
                             s_y = target_encoder_vit(xb).mean(dim=1)
-                        logits = probe(s_y)
-                        loss = F.cross_entropy(logits, yb)
+                        def logits_loss():
+                            logits = probe(s_y)
+                            loss = F.cross_entropy(logits, yb)
+                            return logits, loss
+
+                        if hasattr(data_loader_any, 'FLAG_VAL'):
+                            with torch.no_grad():
+                                logits, loss = logits_loss()
+                        else:
+                            logits, loss = logits_loss()
+                        
                     loss = loss / grad_accum_steps
                     loss_eval_accum += loss.detach()
-                    loss.backward()
+                    if hasattr(data_loader_any, 'FLAG_VAL'):
+                        pass
+                    else:
+                        loss.backward()
                 if use_ddp:
                     dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
 
@@ -308,8 +322,16 @@ def main():
                 if step == 10:
                     break
 
-    eval_probe(data_loader)
-    eval_probe(val_data_loader)
+    # train linear probe
+    eval_probe(dist_sampler, data_loader)
+
+    # test linear probe on val_data without training
+    probe.eval()
+    with torch.no_grad():
+        val_data_loader.FLAG_VAL = 1
+        print("> Validation test of linear probe classifier <")
+        eval_probe(val_dist_sampler, val_data_loader)
+
     # save end of final epoch
     # save_checkpoint(epoch)
 
