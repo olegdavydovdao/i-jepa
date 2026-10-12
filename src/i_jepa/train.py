@@ -269,16 +269,13 @@ def main():
                         with torch.no_grad():
                             s_y = target_encoder_vit(xb).mean(dim=1) # average pool
 
-                        def logits_loss():
-                            logits = probe(s_y)
-                            loss = F.cross_entropy(logits, yb)
-                            return logits, loss
-
                         if use_probe_val:
                             with torch.no_grad():
-                                logits, loss = logits_loss()
+                                logits = probe(s_y)
+                                loss = F.cross_entropy(logits, yb)
                         else:
-                            logits, loss = logits_loss()
+                            logits = probe(s_y)
+                            loss = F.cross_entropy(logits, yb)
                         
                     loss = loss / grad_accum_steps
                     loss_eval_accum += loss.detach()
