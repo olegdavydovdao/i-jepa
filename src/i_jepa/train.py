@@ -305,7 +305,6 @@ def main():
             if master_process:
                 print(f"epoch:{epoch_eval} | accuracy: {accuracy.item():.2f}%")
 
-    # TODO: accuracy
     # TRAIN linear probe
     use_probe_train = True
     print("> Train linear probe classifier <")
