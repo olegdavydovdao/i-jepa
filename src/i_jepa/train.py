@@ -241,6 +241,8 @@ def main():
     # LINEAR PROBE CLASSIFIER
 
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
+    nn.init.normal_(probe.weight, std = cfg.init_std)
+    nn.init.zeros_(probe.bias)
     probe.to(device)
     if use_compile:
         probe = torch.compile(probe)
