@@ -252,6 +252,8 @@ def main():
     def run_probe(dist_sampler_any, data_loader_any, use_probe_train):
         for epoch_eval in range(cfg.eval_num_epoch):
             dist_sampler_any.set_epoch(epoch_eval)
+            correct = torch.tensor(0, device=device)
+            total = torch.tensor(0, device=device)
 
             for step, (xb_proc, yb_proc) in enumerate(data_loader_any):
                 if use_probe_train:
@@ -275,6 +277,12 @@ def main():
                         
                     loss = loss / grad_accum_steps
                     loss_eval_accum += loss.detach()
+
+                    with torch.no_grad():
+                        compare = logits.argmax(dim=-1) == yb
+                        total += len(compare)
+                        correct += compare.sum()
+
                     if use_probe_train:
                         loss.backward()
                 if use_ddp:
@@ -288,6 +296,12 @@ def main():
 
                 if step == 10:
                     break
+                
+            accuracy = correct / total * 100 # unit is %
+            if use_ddp:
+                dist.all_reduce(accuracy, op=dist.ReduceOp.AVG)
+            if master_process:
+                print(f"epoch:{epoch_eval} | accuracy: {accuracy.item():.2f}%")
 
     # TODO: accuracy
     # TRAIN linear probe
