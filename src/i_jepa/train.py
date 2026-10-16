@@ -235,8 +235,8 @@ def main():
             batch_per_sec = cfg.total_batch_size / dt
             if master_process:
                 print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
-            if step == 10:
-                break
+            # if step == 10:
+            #     break
 
     # LINEAR PROBE CLASSIFIER
 
@@ -298,8 +298,8 @@ def main():
                 if master_process:
                     print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
 
-                if step == 10:
-                    break
+                # if step == 10:
+                #     break
 
             accuracy = correct / total * 100 # unit is %
             if use_ddp:
