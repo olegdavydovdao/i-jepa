@@ -7,9 +7,9 @@ class Config:
     crop_scale: tuple = (0.3, 1.0)
     normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     tiny_data_folder_name: str = "imagenet1k_tiny"
-    num_train_rows: int = 1000
-    num_val_rows: int = 100
-    batch_size: int = 2
+    num_train_rows: int = 10000
+    num_val_rows: int = 1000
+    batch_size: int = 16
     num_workers: int = 2
     pin_mem: bool = True
     drop_last_data: bool = True
@@ -58,10 +58,10 @@ class Config:
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False
     use_compile: bool = True
-    total_batch_size: int = 4
+    total_batch_size: int = 32
 
     # Eval
     eval_num_epoch: int = 1
-    num_classes: int = 1024 # instead of 1000 due power of 2
+    num_classes: int = 1000
     lr_eval: float = 1e-3
     wd_eval: float = 0.0
