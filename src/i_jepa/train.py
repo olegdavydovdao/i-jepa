@@ -249,12 +249,13 @@ def main():
     mask_collator.finetune = True
     target_encoder_vit.eval()
 
-    def run_probe(dist_sampler_any, data_loader_any, use_probe_val):
+    def run_probe(dist_sampler_any, data_loader_any, use_probe_train):
         for epoch_eval in range(cfg.eval_num_epoch):
             dist_sampler_any.set_epoch(epoch_eval)
 
             for step, (xb_proc, yb_proc) in enumerate(data_loader_any):
-                probe_optimizer.zero_grad()
+                if use_probe_train:
+                    probe_optimizer.zero_grad()
                 loss_eval_accum = 0.0
                 for k in range(grad_accum_steps):
                     xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
@@ -262,33 +263,24 @@ def main():
                     xb = xb.to(device, non_blocking=True)
                     yb = yb.to(device, non_blocking=True)
 
-                    if use_ddp:
-                        probe.require_backward_grad_sync = (k==grad_accum_steps-1)
+                    if use_probe_train:
+                        if use_ddp:
+                            probe.require_backward_grad_sync = (k==grad_accum_steps-1)
 
                     with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
                         with torch.no_grad():
                             s_y = target_encoder_vit(xb).mean(dim=1) # average pool
-
-                        if use_probe_val:
-                            with torch.no_grad():
-                                logits = probe(s_y)
-                                loss = F.cross_entropy(logits, yb)
-                        else:
-                            logits = probe(s_y)
-                            loss = F.cross_entropy(logits, yb)
+                        logits = probe(s_y)
+                        loss = F.cross_entropy(logits, yb)
                         
                     loss = loss / grad_accum_steps
                     loss_eval_accum += loss.detach()
-                    if use_probe_val:
-                        pass
-                    else:
+                    if use_probe_train:
                         loss.backward()
                 if use_ddp:
                     dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
 
-                if use_probe_val:
-                    pass
-                else:
+                if use_probe_train:
                     probe_optimizer.step()
 
                 if master_process:
@@ -298,12 +290,12 @@ def main():
                     break
 
     # TODO: accuracy
-    # train linear probe
-    use_probe_val = False
+    # TRAIN linear probe
+    use_probe_train = True
     print("> Train linear probe classifier <")
-    run_probe(dist_sampler, data_loader, use_probe_val)
+    run_probe(dist_sampler, data_loader, use_probe_train)
 
-    # test linear probe on val_data without training
+    # TEST linear probe on val_data
     val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
     val_data = val_data.with_transform(make_transform)
     val_dist_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -325,10 +317,10 @@ def main():
     )
 
     probe.eval()
-    use_probe_val = True
-    print("> Validation test of linear probe classifier <")
+    use_probe_train = False
+    print("> test of linear probe classifier on val data <")
     with torch.no_grad():
-        run_probe(val_dist_sampler, val_data_loader, use_probe_val)
+        run_probe(val_dist_sampler, val_data_loader, use_probe_train)
 
     # save end of final epoch
     # save_checkpoint(epoch)
