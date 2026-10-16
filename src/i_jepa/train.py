@@ -156,6 +156,8 @@ def main():
             'predictor': predictor_vit.state_dict(),
             'target_encoder': target_encoder_vit.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'probe': probe.state_dict(),
+            'probe_optimizer': probe_optimizer.state_dict(),
             'epoch': epoch,
             'loss_accum': loss_accum,
             'batch_size_per_process': batch_size_per_process,
@@ -296,7 +298,7 @@ def main():
 
                 if step == 10:
                     break
-                
+
             accuracy = correct / total * 100 # unit is %
             if use_ddp:
                 dist.all_reduce(accuracy, op=dist.ReduceOp.AVG)
@@ -337,7 +339,7 @@ def main():
         run_probe(val_dist_sampler, val_data_loader, use_probe_train)
 
     # save end of final epoch
-    # save_checkpoint(epoch)
+    save_checkpoint(epoch)
 
     if use_ddp:
         destroy_process_group()        
