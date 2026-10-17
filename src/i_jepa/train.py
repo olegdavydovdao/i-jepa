@@ -169,7 +169,7 @@ def main(share):
             'lr': lr,
         }
         if master_process:
-            print('save checkpoint')
+            print('save pretrain checkpoint')
             file = f"checkpoint_end_pretrain.pt"
             file_dir = "checkpoints"
             os.makedirs(file_dir, exist_ok=True)

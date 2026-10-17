@@ -113,6 +113,18 @@ def main():
     use_probe_train = True
     print("> Train linear probe classifier <")
     run_probe(dist_sampler, data_loader, use_probe_train)
+    save_dict = {
+        'probe': probe.state_dict(),
+        'probe_optimizer': probe_optimizer.state_dict(),
+    }
+    if master_process:
+        print('save probe checkpoint')
+        file = f"checkpoint_end_probe.pt"
+        file_dir = "checkpoints"
+        os.makedirs(file_dir, exist_ok=True)
+        file_path = os.path.join(file_dir, file)
+        torch.save(save_dict, file_path)
+
 
     # TEST linear probe on val_data
     val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
@@ -144,7 +156,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# save later
-# 'probe': probe.state_dict(),
-# 'probe_optimizer': probe_optimizer.state_dict(),
