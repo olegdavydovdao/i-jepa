@@ -9,12 +9,11 @@ from src.i_jepa.models import EncoderViT
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from torch.distributed import destroy_process_group
-from src.i_jepa.train import main as train_main
+from src.i_jepa.train import main
 
-def main():
-
+def main_probe():
     # LOAD SAVED TARGET_ENCODER
-    share_to_train = train_main(share=True)
+    share_to_train = main(share=True)
     use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = share_to_train()
     
     path_to_saved_dir = "checkpoints"
@@ -39,7 +38,6 @@ def main():
     target_encoder_vit.load_state_dict(saved_target_encoder)
 
     # LINEAR PROBE CLASSIFIER
-
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
     nn.init.normal_(probe.weight, std = cfg.init_std)
     nn.init.zeros_(probe.bias)
@@ -156,4 +154,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main_probe()
