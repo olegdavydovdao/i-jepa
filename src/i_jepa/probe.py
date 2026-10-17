@@ -95,8 +95,8 @@ def main_probe():
                 if master_process:
                     print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
 
-                if step == 10:
-                    break
+                # if step == 10:
+                #     break
 
             accuracy = correct / total * 100 # unit is %
             if use_ddp:
