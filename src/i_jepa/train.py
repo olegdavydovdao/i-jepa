@@ -1,7 +1,6 @@
 import os
 import sys; sys.path.append(".")
 import torch
-import torch.nn as nn
 from torch.nn import functional as F
 from datasets import load_from_disk
 from torch.utils.data import DataLoader
