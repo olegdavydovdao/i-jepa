@@ -162,8 +162,6 @@ def main(share):
             'predictor': predictor_vit.state_dict(),
             'target_encoder': target_encoder_vit.state_dict(),
             'optimizer': optimizer.state_dict(),
-            'probe': probe.state_dict(),
-            'probe_optimizer': probe_optimizer.state_dict(),
             'epoch': epoch,
             'loss_accum': loss_accum,
             'batch_size_per_process': batch_size_per_process,
@@ -171,7 +169,7 @@ def main(share):
             'lr': lr,
         }
         if master_process:
-            file = f"checkpoint_end.pt"
+            file = f"checkpoint_end_pretrain.pt"
             file_dir = "checkpoints"
             os.makedirs(file_dir, exist_ok=True)
             file_path = os.path.join(file_dir, file)

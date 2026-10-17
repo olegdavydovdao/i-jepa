@@ -17,6 +17,17 @@ from src.i_jepa.train import main as train_main
 def main():
     share_to_train = train_main(share=True)
     use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = share_to_train()
+    
+    path_to_saved_dir = "checkpoints"
+    path_to_saved_file = "checkpoint_end_pretrain.pt"
+    path_to_pt = os.path.join(path_to_saved_dir, path_to_saved_file)
+    saved_dict = torch.load(path_to_pt)
+    saved_target_encoder = saved_dict['target_encoder']
+    print(saved_target_encoder)
 
 if __name__ == '__main__':
     main()
+
+# save later
+# 'probe': probe.state_dict(),
+# 'probe_optimizer': probe_optimizer.state_dict(),
