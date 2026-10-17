@@ -19,12 +19,12 @@ def main_probe():
     path_to_saved_file = "checkpoint_end_pretrain.pt"
     path_to_pt = os.path.join(path_to_saved_dir, path_to_saved_file)
     saved_dict = torch.load(path_to_pt)
-    saved_target_encoder = saved_dict['target_encoder']
+    saved_target_encoder_sd = saved_dict['target_encoder']
 
     target_encoder_vit = EncoderViT(cfg)
+    target_encoder_vit.to(device)
     for p in target_encoder_vit.parameters():
         p.requires_grad = False
-    target_encoder_vit.to(device)
 
     major, minor = torch.cuda.get_device_capability()
     use_compile = cfg.use_compile and major >= 7
@@ -34,7 +34,7 @@ def main_probe():
     if use_compile:
         target_encoder_vit = torch.compile(target_encoder_vit)
 
-    target_encoder_vit.load_state_dict(saved_target_encoder)
+    target_encoder_vit.load_state_dict(saved_target_encoder_sd)
 
     # LINEAR PROBE CLASSIFIER
     probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
@@ -150,7 +150,6 @@ def main_probe():
 
     if use_ddp:
         destroy_process_group()
-
 
 if __name__ == '__main__':
     main_probe()
