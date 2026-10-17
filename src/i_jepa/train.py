@@ -21,7 +21,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
-def main():
+def main(share):
     def share_to_train():
         # to set num_workers creation in DataLoader
         try:
@@ -97,6 +97,8 @@ def main():
             persistent_workers=False,
         )
         return use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps
+    if share:
+        return share_to_train
     use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = share_to_train()
 
 # --------------------------------------------------------------------------------
@@ -350,4 +352,4 @@ def main():
         destroy_process_group()        
 
 if __name__ == "__main__":
-    main()
+    main(share=False)

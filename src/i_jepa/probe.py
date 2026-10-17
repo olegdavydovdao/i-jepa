@@ -12,9 +12,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
+from src.i_jepa.train import main as train_main
 
 def main():
-    pass
+    share_to_train = train_main(share=True)
+    use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = share_to_train()
 
 if __name__ == '__main__':
     main()
