@@ -9,7 +9,7 @@ class Config:
     tiny_data_folder_name: str = "imagenet1k_tiny"
     num_train_rows: int = 1000
     num_val_rows: int = 100
-    batch_size: int = 16
+    batch_size: int = 2
     num_workers: int = 2
     pin_mem: bool = True
     drop_last_data: bool = True
@@ -46,7 +46,7 @@ class Config:
 
     # Optimization
     ema: tuple = (0.996, 1.0)
-    num_epochs: int = 4
+    num_epochs: int = 1
     start_lr: float = 2e-4
     max_lr: float = 1e-3
     final_lr: float = 1e-6
@@ -58,10 +58,10 @@ class Config:
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False
     use_compile: bool = True
-    total_batch_size: int = 32
+    total_batch_size: int = 4
 
     # Eval
-    eval_num_epoch: int = 4
+    eval_num_epoch: int = 1
     num_classes: int = 1000
     lr_eval: float = 3e-4
     wd_eval: float = 0.0
