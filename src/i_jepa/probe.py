@@ -27,6 +27,8 @@ def main():
     saved_target_encoder = saved_dict['target_encoder']
 
     target_encoder_vit = EncoderViT(cfg)
+    for p in target_encoder_vit.parameters():
+        p.requires_grad = False
     target_encoder_vit.to(device)
 
     major, minor = torch.cuda.get_device_capability()
@@ -38,8 +40,6 @@ def main():
         target_encoder_vit = torch.compile(target_encoder_vit)
 
     target_encoder_vit.load_state_dict(saved_target_encoder)
-    for p in target_encoder_vit.parameters():
-        p.requires_grad = False
 
     # LINEAR PROBE CLASSIFIER
 
