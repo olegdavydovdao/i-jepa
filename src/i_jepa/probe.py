@@ -153,6 +153,9 @@ def main():
     with torch.no_grad():
         run_probe(val_dist_sampler, val_data_loader, use_probe_train)
 
+    if use_ddp:
+        destroy_process_group
+
 
 if __name__ == '__main__':
     main()
