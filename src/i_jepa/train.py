@@ -169,6 +169,7 @@ def main(share):
             'lr': lr,
         }
         if master_process:
+            print('save checkpoint')
             file = f"checkpoint_end_pretrain.pt"
             file_dir = "checkpoints"
             os.makedirs(file_dir, exist_ok=True)
@@ -241,107 +242,6 @@ def main(share):
                 print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
             if step == 10:
                 break
-
-    # LINEAR PROBE CLASSIFIER
-
-    probe = nn.Linear(cfg.emb_dims, cfg.num_classes)
-    nn.init.normal_(probe.weight, std = cfg.init_std)
-    nn.init.zeros_(probe.bias)
-    probe.to(device)
-    if use_compile:
-        probe = torch.compile(probe)
-    if use_ddp:
-        probe = DDP(probe, device_ids=[local_rank])
-
-    probe_optimizer = torch.optim.AdamW(probe.parameters(), lr=cfg.lr_eval, weight_decay=cfg.wd_eval, fused=cfg.use_adamw_fused)
-    mask_collator.finetune = True
-    target_encoder_vit.eval()
-
-    def run_probe(dist_sampler_any, data_loader_any, use_probe_train):
-        for epoch_eval in range(cfg.eval_num_epoch):
-            dist_sampler_any.set_epoch(epoch_eval)
-            correct = torch.tensor(0, device=device)
-            total = torch.tensor(0, device=device)
-
-            for step, (xb_proc, yb_proc) in enumerate(data_loader_any):
-                if use_probe_train:
-                    probe_optimizer.zero_grad()
-                loss_eval_accum = 0.0
-                for k in range(grad_accum_steps):
-                    xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
-                    yb = yb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
-                    xb = xb.to(device, non_blocking=True)
-                    yb = yb.to(device, non_blocking=True)
-
-                    if use_probe_train:
-                        if use_ddp:
-                            probe.require_backward_grad_sync = (k==grad_accum_steps-1)
-
-                    with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
-                        with torch.no_grad():
-                            s_y = target_encoder_vit(xb).mean(dim=1) # average pool
-                        logits = probe(s_y)
-                        loss = F.cross_entropy(logits, yb)
-                        
-                    loss = loss / grad_accum_steps
-                    loss_eval_accum += loss.detach()
-
-                    with torch.no_grad():
-                        compare = logits.argmax(dim=-1) == yb
-                        total += len(compare)
-                        correct += compare.sum()
-
-                    if use_probe_train:
-                        loss.backward()
-                if use_ddp:
-                    dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
-
-                if use_probe_train:
-                    probe_optimizer.step()
-
-                if master_process:
-                    print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
-
-                if step == 10:
-                    break
-
-            accuracy = correct / total * 100 # unit is %
-            if use_ddp:
-                dist.all_reduce(accuracy, op=dist.ReduceOp.AVG)
-            if master_process:
-                print(f"epoch:{epoch_eval} | accuracy: {accuracy.item():.2f}%")
-
-    # TRAIN linear probe
-    use_probe_train = True
-    print("> Train linear probe classifier <")
-    run_probe(dist_sampler, data_loader, use_probe_train)
-
-    # TEST linear probe on val_data
-    val_data = load_from_disk(f"{cfg.tiny_data_folder_name}/validation")
-    val_data = val_data.with_transform(make_transform)
-    val_dist_sampler = torch.utils.data.distributed.DistributedSampler(
-        dataset = val_data,
-        num_replicas = world_size,
-        rank=rank,
-        shuffle=True,
-    )
-
-    val_data_loader = DataLoader(
-        val_data,
-        batch_size=batch_size_per_process,
-        collate_fn=mask_collator,
-        num_workers=cfg.num_workers,
-        sampler=val_dist_sampler,
-        drop_last=cfg.drop_last_data,
-        pin_memory=cfg.pin_mem,
-        persistent_workers=False,
-    )
-
-    probe.eval()
-    use_probe_train = False
-    print("> test of linear probe classifier on val data <")
-    with torch.no_grad():
-        run_probe(val_dist_sampler, val_data_loader, use_probe_train)
 
     # save end of final epoch
     save_checkpoint(epoch)
