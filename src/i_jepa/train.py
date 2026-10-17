@@ -22,79 +22,83 @@ logger = logging.getLogger()
 
 # --------------------------------------------------------------------------------
 def main():
-    # to set num_workers creation in DataLoader
-    try:
-        mp.set_start_method('spawn')
-    except Exception:
-        pass
+    def share_to_train():
+        # to set num_workers creation in DataLoader
+        try:
+            mp.set_start_method('spawn')
+        except Exception:
+            pass
 
-    # run code via torchrun and non-torchrun.
-    use_ddp = int(os.environ.get('RANK', -1)) != -1
-    if use_ddp:
-        assert torch.cuda.is_available(), 'need cuda to DDP'
-        init_process_group(backend='nccl')
-        rank = int(os.environ['RANK'])
-        local_rank = int(os.environ['LOCAL_RANK'])
-        world_size = int(os.environ['WORLD_SIZE'])
-        device = f'cuda:{local_rank}'
-        torch.cuda.set_device(device)
-    else:
-        rank = 0
-        local_rank = 0
-        world_size = 1
-        if torch.cuda.is_available():
+        # run code via torchrun and non-torchrun.
+        use_ddp = int(os.environ.get('RANK', -1)) != -1
+        if use_ddp:
+            assert torch.cuda.is_available(), 'need cuda to DDP'
+            init_process_group(backend='nccl')
+            rank = int(os.environ['RANK'])
+            local_rank = int(os.environ['LOCAL_RANK'])
+            world_size = int(os.environ['WORLD_SIZE'])
             device = f'cuda:{local_rank}'
-        else: device = 'cpu'
-    master_process = rank==0
-    if master_process:
-        print(f"{use_ddp=}")
-    device_type = "cuda" if device.startswith("cuda") else "cpu"
-    
-    torch.manual_seed(0)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(0)
-    cfg = Config()
+            torch.cuda.set_device(device)
+        else:
+            rank = 0
+            local_rank = 0
+            world_size = 1
+            if torch.cuda.is_available():
+                device = f'cuda:{local_rank}'
+            else: device = 'cpu'
+        master_process = rank==0
+        if master_process:
+            print(f"{use_ddp=}")
+        device_type = "cuda" if device.startswith("cuda") else "cpu"
+        
+        torch.manual_seed(0)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(0)
+        cfg = Config()
 
-    # grad accum set up
-    assert cfg.total_batch_size % (cfg.batch_size*world_size) == 0, 'output of "%" is not 0'
-    batch_size_per_process = cfg.total_batch_size // world_size
-    grad_accum_steps = batch_size_per_process // cfg.batch_size
-    if master_process:
-        print(f"{cfg.total_batch_size=}")
-        print(f"{batch_size_per_process=}")
-        print(f"{grad_accum_steps=}")
+        # grad accum set up
+        assert cfg.total_batch_size % (cfg.batch_size*world_size) == 0, 'output of "%" is not 0'
+        batch_size_per_process = cfg.total_batch_size // world_size
+        grad_accum_steps = batch_size_per_process // cfg.batch_size
+        if master_process:
+            print(f"{cfg.total_batch_size=}")
+            print(f"{batch_size_per_process=}")
+            print(f"{grad_accum_steps=}")
 
-    # ImageNet_tiny data installation at 1st run
-    if os.path.isdir(cfg.tiny_data_folder_name):
-        pass
-    else:
-        install_data_folder_tiny(cfg, "train")
-        install_data_folder_tiny(cfg, "validation")
+        # ImageNet_tiny data installation at 1st run
+        if os.path.isdir(cfg.tiny_data_folder_name):
+            pass
+        else:
+            install_data_folder_tiny(cfg, "train")
+            install_data_folder_tiny(cfg, "validation")
 
-    # Load and pre-transform train data
-    train_data = load_from_disk(f"{cfg.tiny_data_folder_name}/train")
-    make_transform = Make_transform(cfg)
-    train_data = train_data.with_transform(make_transform)
-    mask_collator = Mask_collator(cfg)
+        # Load and pre-transform train data
+        train_data = load_from_disk(f"{cfg.tiny_data_folder_name}/train")
+        make_transform = Make_transform(cfg)
+        train_data = train_data.with_transform(make_transform)
+        mask_collator = Mask_collator(cfg)
 
-    # for DDP training | it has own shuffle=True
-    dist_sampler = torch.utils.data.distributed.DistributedSampler(
-        dataset=train_data,
-        num_replicas=world_size,
-        rank=rank,
-        shuffle = True,
-    )
+        # for DDP training | it has own shuffle=True
+        dist_sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset=train_data,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle = True,
+        )
 
-    data_loader = DataLoader(
-        train_data,
-        batch_size=batch_size_per_process,
-        collate_fn=mask_collator,
-        num_workers=cfg.num_workers,
-        sampler = dist_sampler,
-        drop_last=cfg.drop_last_data,
-        pin_memory=cfg.pin_mem, # relate with non_blocking=True
-        persistent_workers=False,
-    )
+        data_loader = DataLoader(
+            train_data,
+            batch_size=batch_size_per_process,
+            collate_fn=mask_collator,
+            num_workers=cfg.num_workers,
+            sampler = dist_sampler,
+            drop_last=cfg.drop_last_data,
+            pin_memory=cfg.pin_mem, # relate with non_blocking=True
+            persistent_workers=False,
+        )
+        return use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps
+    use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = share_to_train()
+
 # --------------------------------------------------------------------------------
     torch.set_float32_matmul_precision('high') # TF32 if available
     encoder_vit_context = EncoderViT(cfg)
