@@ -23,7 +23,20 @@ def main():
     path_to_pt = os.path.join(path_to_saved_dir, path_to_saved_file)
     saved_dict = torch.load(path_to_pt)
     saved_target_encoder = saved_dict['target_encoder']
-    print(saved_target_encoder)
+
+    target_encoder_vit = EncoderViT(cfg)
+    target_encoder_vit.load_state_dict(saved_target_encoder)
+    for p in target_encoder_vit.parameters():
+        p.requires_grad = False
+    target_encoder_vit.to(device)
+
+    major, minor = torch.cuda.get_device_capability()
+    use_compile = cfg.use_compile and major >= 7
+    # compile forward function of 3 separate models.
+    if master_process:
+        print(f"{use_compile=}")
+    if use_compile:
+        target_encoder_vit = torch.compile(target_encoder_vit)
 
 if __name__ == '__main__':
     main()
