@@ -95,7 +95,7 @@ def main_probe():
                     probe_optimizer.step()
 
                 if master_process:
-                    print(f"step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
+                    print(f"epoch:{epoch_eval:2d} | step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")
 
                 # if step == 10:
                 #     break

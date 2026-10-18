@@ -237,7 +237,7 @@ def main(share):
             dt = t1 - t0
             batch_per_sec = cfg.total_batch_size / dt
             if master_process:
-                print(f"step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
+                print(f"epoch:{epoch:2d} | step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
             # if step == 10:
             #     break
 
