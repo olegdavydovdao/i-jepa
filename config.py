@@ -7,8 +7,8 @@ class Config:
     crop_scale: tuple = (0.3, 1.0)
     normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     tiny_data_folder_name: str = "imagenet1k_tiny"
-    num_train_rows: int = 1000 # ! (to flag changes from debug stage to real run stage)
-    num_val_rows: int = 100 # !
+    num_train_rows: int = 1280 # ! (to flag changes from debug stage to real run stage)
+    num_val_rows: int = 128 # !
     batch_size: int = 16 # !
     num_workers: int = 2 # !
     pin_mem: bool = True
