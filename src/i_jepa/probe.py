@@ -13,7 +13,9 @@ from src.i_jepa.train import main
 
 def main_probe():
     # LOAD SAVED TARGET_ENCODER
-    use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps = main(share=True)
+    (use_ddp, rank, local_rank, world_size, device, master_process,
+     device_type, make_transform, mask_collator, dist_sampler,
+     data_loader, cfg, batch_size_per_process, grad_accum_steps) = main(share=True)
     
     path_to_saved_dir = "checkpoints"
     path_to_saved_file = "checkpoint_end_pretrain.pt"

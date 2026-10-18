@@ -95,7 +95,9 @@ def main(share):
         persistent_workers=False,
     )
     if share:
-        return use_ddp, rank, local_rank, world_size, device, master_process, device_type, make_transform, mask_collator, dist_sampler, data_loader, cfg, batch_size_per_process, grad_accum_steps
+        return (use_ddp, rank, local_rank, world_size, device, master_process,
+                device_type, make_transform, mask_collator, dist_sampler, 
+                data_loader, cfg, batch_size_per_process, grad_accum_steps)
 
 # --------------------------------------------------------------------------------
     torch.set_float32_matmul_precision('high') # TF32 if available
