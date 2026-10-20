@@ -46,7 +46,7 @@ class Config:
 
     # Optimization
     ema: tuple = (0.996, 1.0)
-    num_epochs: int = 4 # !
+    num_epochs: int = 2 # !
     start_lr: float = 2e-4
     max_lr: float = 1e-3
     final_lr: float = 1e-6
@@ -57,11 +57,11 @@ class Config:
     
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False # !
-    use_compile: bool = True
+    use_compile: bool = False
     total_batch_size: int = 128 # !
 
     # Eval
-    eval_num_epoch: int = 4 # !
+    eval_num_epoch: int = 2 # !
     num_classes: int = 1000
     lr_eval: float = 3e-4 # !
     wd_eval: float = 0.0
