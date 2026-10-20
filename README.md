@@ -1,7 +1,29 @@
 # I-JEPA
-Reimplement the I-JEPA paper from scratch.
+Reimplement the I-JEPA paper from scratch in code at pretrain and probe stage.
+
+## Project structure
+i-jepa:
+- **`config`** — all high level setup variables.
+
+i-jepa/src/i_jepa:
+- **`data_prepare`** — install, pre-transform and collate data logic.
+- **`models`** — encoder, predictor models.
+- **`probe`** — probe train and test after pre-train stage.
+- **`shedulers`** — learning rate and weight decay shedulers over time.
+- **`train`** — i-jepa at pre-training stage.
+
+i-jepa/imagenet1k_tiny:
+- **`train`** — installed train data.
+- **`validation`** — installed val data.\
+Note: installing inside train.py file.
+
+i-jepa/checkpoints:
+- **`checkpoint_end_pretrain`** — state dicts of models and optimizer after pretrain.
+- **`checkpoint_end_probe`** — state dicts of models and optimizer after probe.\
+Note: available only after train.py and probe.py file respectively.
 
 ## Quick start
+**Requirements**: uv, Git, Python 3.14+, 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti)
 ```python
 git clone https://github.com/olegdavydovdao/i-jepa.git
 hf auth login
@@ -84,7 +106,9 @@ but not in the order corresponding to the names.
 
 ## Citations
 
-I-JEPA original
+I-JEPA original:
+- [Code](https://github.com/facebookresearch/ijepa/tree/main)
+- [Paper](https://arxiv.org/pdf/2301.08243)
 
 ```bibtex
 @article{assran2023self,
@@ -95,7 +119,8 @@ I-JEPA original
 }
 ```
 
-ImageNet-1k
+ImageNet-1k:
+- [HuggingFace](https://huggingface.co/datasets/ILSVRC/imagenet-1k)
 
 ```bibtex
 @article{imagenet15russakovsky,
