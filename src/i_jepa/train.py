@@ -17,6 +17,7 @@ import torch.multiprocessing as mp
 import time
 import torch._inductor.config as inductor_config
 inductor_config.split_reductions = False
+torch._dynamo.config.dynamic_shapes = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger()
