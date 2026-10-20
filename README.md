@@ -23,7 +23,7 @@ i-jepa/checkpoints:
 - **`checkpoint_end_probe.pt`** — saved state dicts of probe optimizer and model inside probe.py.
 
 ## Quick start
-**Requirements**: uv, Git, hugging face account and access to ImageNet1k,\
+**Requirements**: uv, Git, hugging face(HF) account and access to [HF ImageNet1k](https://huggingface.co/datasets/ILSVRC/imagenet-1k),\
 minimum 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti).
 ```python
 # Install uv (if you don't have it)
