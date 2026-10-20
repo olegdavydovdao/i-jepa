@@ -57,7 +57,7 @@ class Config:
     
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False # !
-    use_compile: bool = False
+    use_compile: bool = True
     total_batch_size: int = 128 # !
 
     # Eval
