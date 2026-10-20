@@ -186,15 +186,18 @@ def main(share):
             loss_accum = 0.0
             for k in range(grad_accum_steps):
                 # get new next batch_size in batch_size_per_process
+                print('debug0')
                 xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
                 context_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in context_indecies_proc]
                 targets_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in targets_indecies_proc]
 
+                print('debug1')
                 # data to device
                 xb = xb.to(device, non_blocking=True)
                 context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
                 targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
 
+                print('debug2')
                 if use_ddp:
                     encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
                     predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
