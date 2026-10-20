@@ -19,12 +19,11 @@ i-jepa/imagenet1k_tiny:
 Note: installing inside train.py file.
 
 i-jepa/checkpoints:
-- **`checkpoint_end_pretrain.pt`** — state dicts of models and optimizer after pretrain.
-- **`checkpoint_end_probe.pt`** — state dicts of models and optimizer after probe.\
-Note: available only after train.py and probe.py file respectively.
+- **`checkpoint_end_pretrain.pt`** — state dicts of models and optimizer after train.py.
+- **`checkpoint_end_probe.pt`** — state dicts of probe optimizer and model after probe.py.\
 
 ## Quick start
-**Requirements**: uv, Git, 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti)
+**Requirements**: uv, Git, minimum 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti).
 ```python
 # Install uv (if you don't have it)
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -35,11 +34,11 @@ cd i-jepa
 uv sync
 
 # DDP run | 1 is num of available gpu, you can change it.
-torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
-torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
-# default run | you can use "uv run" instead of "python"
-python src/i_jepa/train.py
-python src/i_jepa/probe.py
+uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
+uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
+# default run
+uv run python src/i_jepa/train.py
+uv run python src/i_jepa/probe.py
 ```
 
 ## Fix bugs in original I-JEPA
