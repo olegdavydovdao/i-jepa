@@ -1,16 +1,17 @@
 # I-JEPA
-Reimplement the I-JEPA paper from scratch in code at pretrain and probe stage.
+Reimplement the I-JEPA (Image Joint-Embedding Predictive Architecture) paper from scratch in code at pretrain and probe stage.
 
 ## Project structure
 i-jepa:
-- **`config`** — all high level setup variables.
+- **`config.py`** — all high level setup variables.
+- **`pyproject.toml`** — dependencies.
 
 i-jepa/src/i_jepa:
-- **`data_prepare`** — install, pre-transform and collate data logic.
-- **`models`** — encoder, predictor models.
-- **`probe`** — probe train and test after pre-train stage.
-- **`shedulers`** — learning rate and weight decay shedulers over time.
-- **`train`** — i-jepa at pre-training stage.
+- **`data_prepare.py`** — install, pre-transform and collate data logic.
+- **`models.py`** — encoder, predictor models.
+- **`probe.py`** — probe train and test after pre-train stage.
+- **`shedulers.py`** — learning rate and weight decay shedulers over time.
+- **`train.py`** — i-jepa at pre-training stage.
 
 i-jepa/imagenet1k_tiny:
 - **`train`** — installed train data.
@@ -18,12 +19,12 @@ i-jepa/imagenet1k_tiny:
 Note: installing inside train.py file.
 
 i-jepa/checkpoints:
-- **`checkpoint_end_pretrain`** — state dicts of models and optimizer after pretrain.
-- **`checkpoint_end_probe`** — state dicts of models and optimizer after probe.\
+- **`checkpoint_end_pretrain.pt`** — state dicts of models and optimizer after pretrain.
+- **`checkpoint_end_probe.pt`** — state dicts of models and optimizer after probe.\
 Note: available only after train.py and probe.py file respectively.
 
 ## Quick start
-**Requirements**: uv, Git, Python 3.14+, 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti)
+**Requirements**: uv, Git, 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti)
 ```python
 # Install uv (if you don't have it)
 curl -LsSf https://astral.sh/uv/install.sh | sh
