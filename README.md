@@ -20,10 +20,10 @@ Note: installing is happens inside train.py file only in 1st time.
 
 i-jepa/checkpoints:
 - **`checkpoint_end_pretrain.pt`** — saved state dicts of models and optimizer inside train.py.
-- **`checkpoint_end_probe.pt`** — saved state dicts of probe optimizer and model inside probe.py.\
+- **`checkpoint_end_probe.pt`** — saved state dicts of probe optimizer and model inside probe.py.
 
 ## Quick start
-**Requirements**: uv, Git, hugging face account,\
+**Requirements**: uv, Git, hugging face account and access to ImageNet1k,\
 minimum 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti).
 ```python
 # Install uv (if you don't have it)
@@ -34,7 +34,7 @@ hf auth login
 cd i-jepa
 uv sync
 
-# DDP run | 1 is num of available gpu, you can change it.
+# DDP run | 1 is num of available GPUs, you can change it.
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
 # default run
