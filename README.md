@@ -1,6 +1,19 @@
 # I-JEPA
 Reimplement the I-JEPA paper from scratch.
 
+## Quick start
+```python
+git clone https://github.com/olegdavydovdao/i-jepa.git
+hf auth login
+cd i-jepa
+# DDP run | 1 is num of available gpu, you can change it.
+torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
+torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
+# default run
+python src/i_jepa/train.py
+python src/i_jepa/probe.py
+```
+
 ## Fix bugs in original I-JEPA
 ### Bug 1 in masking strategy:
 Last row and column in patch grid never selected in context and target masks.
