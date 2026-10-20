@@ -15,9 +15,6 @@ import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
 import time
-# import torch._inductor.config as inductor_config
-# inductor_config.split_reductions = False
-# torch._dynamo.config.dynamic_shapes = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger()
@@ -214,9 +211,7 @@ def main(share):
                     loss = F.smooth_l1_loss(s_y_pred, s_y)
                 loss = loss / grad_accum_steps
                 loss_accum += loss.detach()
-                print('debug0')
                 loss.backward()
-                print('debug1')
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
 
