@@ -217,7 +217,9 @@ def main(share):
                     loss = F.smooth_l1_loss(s_y_pred, s_y)
                 loss = loss / grad_accum_steps
                 loss_accum += loss.detach()
+                print('debug3')
                 loss.backward()
+                print('debug4')
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
 
