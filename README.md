@@ -14,16 +14,17 @@ i-jepa/src/i_jepa:
 - **`train.py`** — i-jepa at pre-training stage.
 
 i-jepa/imagenet1k_tiny:
-- **`train`** — installed train data.
-- **`validation`** — installed val data.\
-Note: installing inside train.py file.
+- **`train`** — installed n rows of train data.
+- **`validation`** — installed k rows of val data.\
+Note: installing is happens inside train.py file only in 1st time.
 
 i-jepa/checkpoints:
-- **`checkpoint_end_pretrain.pt`** — state dicts of models and optimizer after train.py.
-- **`checkpoint_end_probe.pt`** — state dicts of probe optimizer and model after probe.py.\
+- **`checkpoint_end_pretrain.pt`** — saved state dicts of models and optimizer inside train.py.
+- **`checkpoint_end_probe.pt`** — saved state dicts of probe optimizer and model inside probe.py.\
 
 ## Quick start
-**Requirements**: uv, Git, minimum 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti).
+**Requirements**: uv, Git, hugging face account,\
+minimum 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti).
 ```python
 # Install uv (if you don't have it)
 curl -LsSf https://astral.sh/uv/install.sh | sh
