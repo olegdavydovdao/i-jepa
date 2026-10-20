@@ -15,9 +15,9 @@ import torch.distributed as dist
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
 import time
-import torch._inductor.config as inductor_config
-inductor_config.split_reductions = False
-torch._dynamo.config.dynamic_shapes = False
+# import torch._inductor.config as inductor_config
+# inductor_config.split_reductions = False
+# torch._dynamo.config.dynamic_shapes = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger()
@@ -186,18 +186,15 @@ def main(share):
             loss_accum = 0.0
             for k in range(grad_accum_steps):
                 # get new next batch_size in batch_size_per_process
-                print('debug0')
                 xb = xb_proc[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size]
                 context_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in context_indecies_proc]
                 targets_indecies = [m[k*cfg.batch_size: k*cfg.batch_size + cfg.batch_size] for m in targets_indecies_proc]
 
-                print('debug1')
                 # data to device
                 xb = xb.to(device, non_blocking=True)
                 context_indecies = [m.to(device, non_blocking=True) for m in context_indecies]
                 targets_indecies = [m.to(device, non_blocking=True) for m in targets_indecies]
 
-                print('debug2')
                 if use_ddp:
                     encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
                     predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
@@ -217,9 +214,9 @@ def main(share):
                     loss = F.smooth_l1_loss(s_y_pred, s_y)
                 loss = loss / grad_accum_steps
                 loss_accum += loss.detach()
-                print('debug3')
+                print('debug0')
                 loss.backward()
-                print('debug4')
+                print('debug1')
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
 
