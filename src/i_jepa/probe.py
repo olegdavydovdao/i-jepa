@@ -52,6 +52,13 @@ def main_probe():
     mask_collator.finetune = True
     target_encoder_vit.eval()
 
+    scaler = torch.amp.GradScaler(device_type) if cfg.use_fp16 else None
+    amp_dtype = torch.bfloat16 if cfg.use_bfloat16 else torch.float16
+    enabled_amp = cfg.use_bfloat16 or cfg.use_fp16
+    if master_process:
+        print(f"{cfg.use_fp16=}")
+        print(f"{cfg.use_bfloat16=}")
+
     def run_probe(dist_sampler_any, data_loader_any, use_probe_train):
         for epoch_eval in range(cfg.eval_num_epoch):
             dist_sampler_any.set_epoch(epoch_eval)
@@ -72,7 +79,7 @@ def main_probe():
                         if use_ddp:
                             probe.require_backward_grad_sync = (k==grad_accum_steps-1)
 
-                    with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                    with torch.autocast(device_type=device_type, dtype=amp_dtype, enabled=enabled_amp):
                         with torch.no_grad():
                             s_y = target_encoder_vit(xb).mean(dim=1) # average pool
                         logits = probe(s_y)
@@ -87,12 +94,17 @@ def main_probe():
                         correct += compare.sum()
 
                     if use_probe_train:
-                        loss.backward()
+                        if cfg.use_fp16:
+                            scaler.scale(loss).backward()
+                        else: loss.backward()
                 if use_ddp:
                     dist.all_reduce(loss_eval_accum, op=dist.ReduceOp.AVG)
 
                 if use_probe_train:
-                    probe_optimizer.step()
+                    if cfg.use_fp16:
+                        scaler.step(probe_optimizer)
+                        scaler.update()
+                    else: probe_optimizer.step()
 
                 if master_process:
                     print(f"epoch:{epoch_eval:2d} | step: {step:4d} | loss_eval_accum: {loss_eval_accum.item():.4f}")

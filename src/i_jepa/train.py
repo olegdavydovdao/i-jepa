@@ -154,6 +154,13 @@ def main(share):
     get_lr = LRScheduler(cfg, i_per_ep)
     get_wd = WDScheduler(cfg, i_per_ep)
 
+    scaler = torch.amp.GradScaler(device_type) if cfg.use_fp16 else None
+    amp_dtype = torch.bfloat16 if cfg.use_bfloat16 else torch.float16
+    enabled_amp = cfg.use_bfloat16 or cfg.use_fp16
+    if master_process:
+        print(f"{cfg.use_fp16=}")
+        print(f"{cfg.use_bfloat16=}")
+
     def save_checkpoint(epoch):
         save_dict = {
             'context_encoder': encoder_vit_context.state_dict(),
@@ -196,7 +203,7 @@ def main(share):
                     encoder_vit_context.require_backward_grad_sync = (k==grad_accum_steps-1)
                     predictor_vit.require_backward_grad_sync = (k==grad_accum_steps-1)
 
-                with torch.autocast(device_type=device_type, dtype=torch.bfloat16, enabled=cfg.use_bfloat16):
+                with torch.autocast(device_type=device_type, dtype=amp_dtype, enabled=enabled_amp):
                     # context branch forward
                     s_x = encoder_vit_context(xb, context_indecies)
                     s_y_pred = predictor_vit(s_x, context_indecies, targets_indecies)
@@ -211,7 +218,9 @@ def main(share):
                     loss = F.smooth_l1_loss(s_y_pred, s_y)
                 loss = loss / grad_accum_steps
                 loss_accum += loss.detach()
-                loss.backward()
+                if cfg.use_fp16:
+                    scaler.scale(loss).backward()
+                else: loss.backward()
             if use_ddp:
                 dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
 
@@ -222,7 +231,11 @@ def main(share):
                 group['lr'] = lr
                 if group['weight_decay'] != 0.0: # default = 0.01
                     group['weight_decay'] = wd
-            optimizer.step()
+            
+            if cfg.use_fp16:
+                scaler.step(optimizer)
+                scaler.update()
+            else: optimizer.step()
 
             # EMA update target branch
             # do i need raw model from compile and ddp?
