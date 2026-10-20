@@ -113,7 +113,7 @@ but not in the order corresponding to the names.
 ## Citations
 
 I-JEPA original:
-- [Code](https://github.com/facebookresearch/ijepa/tree/main)
+- [GitHub Code](https://github.com/facebookresearch/ijepa/tree/main)
 - [Paper](https://arxiv.org/pdf/2301.08243)
 
 ```bibtex
@@ -126,7 +126,7 @@ I-JEPA original:
 ```
 
 ImageNet-1k:
-- [HuggingFace](https://huggingface.co/datasets/ILSVRC/imagenet-1k)
+- [HF dataset](https://huggingface.co/datasets/ILSVRC/imagenet-1k)
 
 ```bibtex
 @article{imagenet15russakovsky,
