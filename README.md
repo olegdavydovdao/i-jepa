@@ -25,13 +25,18 @@ Note: available only after train.py and probe.py file respectively.
 ## Quick start
 **Requirements**: uv, Git, Python 3.14+, 1 Nvidia GPU (tested on Nvidia T4 and Geforce GTX 1050Ti)
 ```python
+# Install uv (if you don't have it)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 git clone https://github.com/olegdavydovdao/i-jepa.git
 hf auth login
 cd i-jepa
+uv sync
+
 # DDP run | 1 is num of available gpu, you can change it.
 torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
 torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
-# default run
+# default run | you can use "uv run" instead of "python"
 python src/i_jepa/train.py
 python src/i_jepa/probe.py
 ```
