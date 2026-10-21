@@ -1,6 +1,18 @@
 # I-JEPA
 Reimplement the I-JEPA (Image Joint-Embedding Predictive Architecture) paper from scratch in code at pretrain and probe stage.
 
+## Config of a project
+Encoder model: ViT-B/16.\
+Predictor model: narrow ViT with 6 depth.\
+I have small compute capability, but the code is easy to scale up.\
+Just change variables in **`config.py`**:
+- num_train_rows and num_val_rows: how many rows of data to install (change before 1st run train.py).
+- num_workers: how many workers is created inside DataLoader.
+- num_epochs and eval_num_epoch: how many epochs to train on.
+- use_bfloat16 or use_fp16: which low precision to use.
+- batch_size and total_batch_size: reach total_batch_size volume via grad accum steps if not enough vRAM.
+- you can change model (ex: Encoder) varialbes too.
+
 ## Project structure
 i-jepa:
 - **`config.py`** — all high level setup variables.

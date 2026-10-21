@@ -57,7 +57,7 @@ class Config:
     
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False # !
-    use_fp16 = False
+    use_fp16 = False # !
     if not use_bfloat16:
         use_fp16 = True
     use_compile: bool = True
@@ -66,5 +66,5 @@ class Config:
     # Eval
     eval_num_epoch: int = 2 # !
     num_classes: int = 1000
-    lr_eval: float = 3e-4 # !
+    lr_eval: float = 3e-4
     wd_eval: float = 0.0
