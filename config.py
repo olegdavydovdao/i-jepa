@@ -7,7 +7,8 @@ class Config:
     crop_scale: tuple = (0.3, 1.0)
     normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     tiny_data_folder_name: str = "imagenet1k_tiny"
-    num_train_rows: int = 1280 # ! (to flag changes from debug stage to real run stage)
+    # ! is flag changes from debug stage to real run stage)
+    num_train_rows: int = 1280 # ! 12800 is 1% from full ImageNet1k
     num_val_rows: int = 128 # ! >= total_batch_size
     batch_size: int = 64 # !
     num_workers: int = 2 # !
@@ -46,7 +47,7 @@ class Config:
 
     # Optimization
     ema: tuple = (0.996, 1.0)
-    num_epochs: int = 24 # !
+    num_epochs: int = 12 # !
     start_lr: float = 2e-4
     max_lr: float = 1e-3
     final_lr: float = 1e-6
@@ -64,7 +65,7 @@ class Config:
     total_batch_size: int = 128 # !
 
     # Eval
-    eval_num_epoch: int = 4 # ! 1/6 from num_epochs
+    eval_num_epoch: int = 4 # !
     num_classes: int = 1000
     lr_eval: float = 3e-4
     wd_eval: float = 0.0
