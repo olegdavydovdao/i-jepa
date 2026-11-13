@@ -1,11 +1,20 @@
 # I-JEPA
-Reimplement the I-JEPA (Image Joint-Embedding Predictive Architecture) paper from scratch in code at pretrain and probe stage.
+Reproduced the I-JEPA by reading the [paper](https://arxiv.org/pdf/2301.08243) and [original code](https://github.com/facebookresearch/ijepa) while writing code from scratch in parallel, at both the pretraining and linear probing(train and validation) stages.
 
 ## Config of a project
 Encoder model: ViT-B/16.\
 Predictor model: narrow ViT with 6 depth.\
-I have small compute capability, but the code is easy to scale up.\
-Just change variables in **`config.py`**:
+Dataset: 1% of ImageNet-1k (12,800 train and 512 validation images).\
+Scale: 1 node DDP; tested on 1 Nvidia T4 GPU; easy to scale up to more GPUs.
+
+## Results
+Results after 12 (pretraining) and 4 (training linear probe) epochs:
+- Pretrain: 		Loss = 0.49 to 0.09 (decrease over optimization steps)
+- Probe (train): 	Loss = 7.05 to 6.66;		Top-1 accuracy = 0.61%
+- Probe (validation): 	Loss = 6.8; 			Top-1 accuracy = 0.59%
+
+## Scale up
+To scale up the training run, update the variables in **`config.py`**:
 - num_train_rows and num_val_rows: how many rows of data to install (change before 1st run train.py).
 - num_workers: how many workers is created inside DataLoader.
 - num_epochs and eval_num_epoch: how many epochs to train on.
@@ -56,7 +65,7 @@ uv run python src/i_jepa/probe.py
 
 ## Fix bugs in original I-JEPA
 ### Bug 1 in masking strategy:
-Last row and column in patch grid never selected in context and target masks.
+The last row and column of the patch grid are never selected in the context or target masks. I fixed this by changing >= to > and using torch.randint correctly.
 ```python
 # Path to my code: src\i_jepa\data_prepare.py\ 69 and 85 lines
 # Path to original code: src\masks\multiblock.py\ 67 and 89 lines
@@ -84,6 +93,8 @@ ViT-target: computes these patches but output never selected as targets, not lea
 
 
 ### Bug 2 in masking strategy:
+The context mask overlaps with target masks in rare cases. I fixed this by always looping over all target masks.
+
 **The problem:**\
 In original I-JEPA this code prevents infinity loop and useful for experiments without fixed settings to detect which setup of masking strategy how often length of masks are descending to less then threshold, but with fixed I-JEPA standart params I think it is a bug.
 ```python
