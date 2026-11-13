@@ -61,6 +61,11 @@ uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
 uv run python src/i_jepa/train.py
 uv run python src/i_jepa/probe.py
 ```
+## The steps I took to reproduce I-JEPA
+1. Papers: I read, translated, and studied the Transformer, ViT, JEPA, and I-JEPA papers.
+2. Lectures: I watched many JEPA lectures and explanations by Yann LeCun, Yannic Kilcher, Welch Labs, and others.
+3. Code: I read the original I-JEPA source code in parallel with writing my own, and reproduced similar but not identical code from scratch. I studied unfamiliar code and fixed bugs. I wrote all the code myself, without copy-pasting from the original or vibe coding blindly.
+4. AI interaction: I used an AI chatbot to help me learn and suggest code, as well as explain the logic behind the many JEPA ideas in the papers and lectures. I then check the suggested code against the documentation and by running it in the terminal.
 
 ## Fix bugs in original I-JEPA
 ### Bug 1 in masking strategy:
