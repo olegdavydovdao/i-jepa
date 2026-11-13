@@ -8,8 +8,8 @@ class Config:
     normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     tiny_data_folder_name: str = "imagenet1k_tiny"
     # ! is flag changes from debug stage to real run stage)
-    num_train_rows: int = 1280 # ! 12800 is 1% from full ImageNet1k
-    num_val_rows: int = 128 # ! >= total_batch_size
+    num_train_rows: int = 12800 # ! 1% of ImageNet1k train split
+    num_val_rows: int = 512 # ! >= total_batch_size | 1% of ImageNet1k val split
     batch_size: int = 128 # !
     num_workers: int = 2 # !
     pin_mem: bool = True
@@ -58,11 +58,10 @@ class Config:
     
     ## cuda | GPU == A100 for future
     use_bfloat16: bool = False # !
-    use_fp16 = False # !
-    if not use_bfloat16:
-        use_fp16 = True
+    use_fp16 = True # !
+
     use_compile: bool = True
-    total_batch_size: int = 128 # !
+    total_batch_size: int = 512 # !
 
     # Eval
     eval_num_epoch: int = 4 # !

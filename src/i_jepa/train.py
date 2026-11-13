@@ -253,6 +253,7 @@ def main(share):
                 print(f"epoch:{epoch:2d} | step: {step:4d} | loss_accum: {loss_accum.item():.4f} | dt: {dt:.2f}s | lr: {lr:.4e} | wd: {wd:.4f} | batch/sec: {batch_per_sec:.2f}")
             # if step == 10:
             #     break
+        print()
 
     # save end of final epoch
     save_checkpoint(epoch)
