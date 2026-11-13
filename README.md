@@ -54,7 +54,7 @@ hf auth login
 cd i-jepa
 uv sync
 
-# DDP run | 1 is num of available GPUs, you can change it.
+# single-node DDP run | change --nproc_per_node=1 if you have more GPUs.
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
 # default run
