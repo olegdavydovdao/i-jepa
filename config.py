@@ -10,7 +10,7 @@ class Config:
     # ! is flag changes from debug stage to real run stage)
     num_train_rows: int = 1280 # ! 12800 is 1% from full ImageNet1k
     num_val_rows: int = 128 # ! >= total_batch_size
-    batch_size: int = 64 # !
+    batch_size: int = 128 # !
     num_workers: int = 2 # !
     pin_mem: bool = True
     drop_last_data: bool = True
