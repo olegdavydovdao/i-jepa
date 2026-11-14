@@ -10,7 +10,7 @@ class Config:
     # ! is flag to scale up the run
     num_train_rows: int = 131072 # ! 10% of ImageNet1k train split
     num_val_rows: int = 6144 # ! | 10% of ImageNet1k val split
-    total_batch_size: int = 2048 # ! | paper's default batch size
+    total_batch_size: int = 1024 # ! | paper's default batch size
     assert num_val_rows >= total_batch_size, 'need to install more val rows'
     batch_size: int = 128 # ! | max for Nvidia T4
     num_workers: int = 0 # !
