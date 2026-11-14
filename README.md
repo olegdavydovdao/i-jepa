@@ -2,7 +2,7 @@
 Reproduced the I-JEPA by reading the [paper](https://arxiv.org/pdf/2301.08243) and [original code](https://github.com/facebookresearch/ijepa) while writing code from scratch in parallel, at both the pretraining and linear probing (train and validation) stages.
 
 ## Config of a project
-- Models: ViT-B/16 encoder; narrow ViT predictor with depth 6.
+- Models: ViT-B/16 encoder (86M params); narrow ViT-B predictor with depth 6.
 - Dataset: 1% of ImageNet-1k (12,800 train and 512 validation images).
 - Scale: 1 node DDP; tested on 1 Nvidia T4 GPU; easy to scale up to more GPUs.
 
