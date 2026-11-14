@@ -54,7 +54,8 @@ hf auth login
 cd i-jepa
 uv sync
 
-# single-node DDP run | change --nproc_per_node=1 if you have more GPUs.
+# single-node DDP run | you need Linux machine for torchrun
+# if you have more GPUs: change --nproc_per_node=?
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/train.py
 uv run torchrun --standalone --nproc_per_node=1 src/i_jepa/probe.py
 # default run

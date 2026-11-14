@@ -61,6 +61,7 @@ def main(share):
     if master_process:
         print(f"{cfg.total_batch_size=}")
         print(f"{batch_size_per_process=}")
+        print(f"{cfg.batch_size=}")
         print(f"{grad_accum_steps=}")
 
     # ImageNet_tiny data installation at 1st run
