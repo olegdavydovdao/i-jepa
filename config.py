@@ -8,8 +8,8 @@ class Config:
     normalization: tuple = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     tiny_data_folder_name: str = "imagenet1k_tiny"
     # ! is flag to scale up the run
-    num_train_rows: int = 12288 # ! 1% of ImageNet1k train split
-    num_val_rows: int = 2048 # ! | 4% of ImageNet1k val split
+    num_train_rows: int = 131072 # ! 10% of ImageNet1k train split
+    num_val_rows: int = 6144 # ! | 10% of ImageNet1k val split
     total_batch_size: int = 2048 # ! | paper's default batch size
     assert num_val_rows >= total_batch_size, 'need to install more val rows'
     batch_size: int = 128 # ! | max for Nvidia T4
@@ -48,7 +48,7 @@ class Config:
     pred_depth: int = 6
 
     # Optimization
-    num_epochs: int = 12 # !
+    num_epochs: int = 60 # !
     ema: tuple = (0.996, 1.0)
     start_lr: float = 2e-4
     max_lr: float = 1e-3
@@ -64,7 +64,7 @@ class Config:
     use_compile: bool = True
 
     # Eval
-    eval_num_epoch: int = 4 # !
+    eval_num_epoch: int = 6 # !
     num_classes: int = 1000
-    lr_eval: float = 3e-4
+    lr_eval: float = 1e-3
     wd_eval: float = 0.0
