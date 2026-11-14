@@ -48,7 +48,7 @@ class Config:
     pred_depth: int = 6
 
     # Optimization
-    num_epochs: int = 60 # !
+    num_epochs: int = 60 # ! | 10% of paper's pretrain epochs
     ema: tuple = (0.996, 1.0)
     start_lr: float = 2e-4
     max_lr: float = 1e-3
@@ -64,7 +64,7 @@ class Config:
     use_compile: bool = True
 
     # Eval
-    eval_num_epoch: int = 6 # !
+    eval_num_epoch: int = 6 # ! | 10% of paper's probe epochs
     num_classes: int = 1000
     lr_eval: float = 1e-3
     wd_eval: float = 0.0
