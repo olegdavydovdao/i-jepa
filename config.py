@@ -13,7 +13,7 @@ class Config:
     total_batch_size: int = 2048 # ! | paper's default batch size
     assert num_val_rows >= total_batch_size, 'need to install more val rows'
     batch_size: int = 128 # ! | max for Nvidia T4
-    num_workers: int = 1 # !
+    num_workers: int = 0 # !
     pin_mem: bool = True
     drop_last_data: bool = True
     
