@@ -67,4 +67,4 @@ class Config:
     eval_num_epoch: int = 3 # ! | 6% of 50 paper's probe epochs
     num_classes: int = 1000
     lr_eval: float = 1e-3
-    wd_eval: float = 0.0
+    wd_eval: float = 5e-4
